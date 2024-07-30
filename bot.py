@@ -2,6 +2,7 @@ import telebot
 from telebot import types
 from PIL import Image
 from io import BytesIO
+import zipfile
 
 # Вставьте сюда ваш токен и ID
 API_TOKEN = '6420216228:AAFgkx1SNpvvFek9ACHdMJ-h4IirruRqCTI'
@@ -11,12 +12,28 @@ bot = telebot.TeleBot(API_TOKEN)
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    bot.reply_to(message, "Привет! Отправьте мне PNG файл размером 128x128 для обработки.")
+    markup = types.InlineKeyboardMarkup()
+    process_button = types.InlineKeyboardButton("Обработать PNG 128x128", callback_data="process_image")
+    rename_zip_button = types.InlineKeyboardButton("Переименовать и заархивировать изображение", callback_data="rename_zip")
+    markup.add(process_button, rename_zip_button)
+    bot.send_message(message.chat.id, "Выберите действие:", reply_markup=markup)
 
-@bot.message_handler(content_types=['document'])
-def handle_docs_photo(message):
+@bot.callback_query_handler(func=lambda call: True)
+def callback_query(call):
+    if call.data == "process_image":
+        bot.answer_callback_query(call.id, "Отправьте PNG файл размером 128x128 для обработки.")
+        bot.register_next_step_handler(call.message, handle_image_processing)
+    elif call.data == "rename_zip":
+        bot.answer_callback_query(call.id, "Отправьте изображение для переименования и архивации.")
+        bot.register_next_step_handler(call.message, handle_image_renaming_and_zipping)
+
+def handle_image_processing(message):
     if message.from_user.id != USER_ID:
         bot.reply_to(message, "Извините, вы не авторизованы для использования этого бота.")
+        return
+
+    if message.content_type != 'document' or not message.document.mime_type.startswith('image/'):
+        bot.reply_to(message, "Пожалуйста, отправьте файл изображения.")
         return
 
     try:
@@ -24,7 +41,7 @@ def handle_docs_photo(message):
         downloaded_file = bot.download_file(file_info.file_path)
 
         image = Image.open(BytesIO(downloaded_file))
-        
+
         if image.size != (128, 128):
             bot.reply_to(message, "Пожалуйста, загрузите PNG файл размером 128x128.")
             return
@@ -49,5 +66,43 @@ def handle_docs_photo(message):
         bot.send_document(message.chat.id, processed_image_bytes, visible_file_name='processed_image.png')
     except Exception as e:
         bot.reply_to(message, f'Ошибка при обработке изображения: {e}')
+
+def handle_image_renaming_and_zipping(message):
+    if message.from_user.id != USER_ID:
+        bot.reply_to(message, "Извините, вы не авторизованы для использования этого бота.")
+        return
+
+    if message.content_type != 'document' or not message.document.mime_type.startswith('image/'):
+        bot.reply_to(message, "Пожалуйста, отправьте файл изображения.")
+        return
+
+    try:
+        file_info = bot.get_file(message.document.file_id)
+        downloaded_file = bot.download_file(file_info.file_path)
+
+        file_names = [
+            'red_sandstone_bottom.png',
+            'red_sandstone_carved.png',
+            'red_sandstone_normal.png',
+            'red_sandstone_smooth.png',
+            'red_sandstone_top.png',
+            'sandstone_bottom.png',
+            'sandstone_carved.png',
+            'sandstone_normal.png',
+            'sandstone_smooth.png',
+            'sandstone_top.png'
+        ]
+
+        zip_buffer = BytesIO()
+
+        with zipfile.ZipFile(zip_buffer, 'w') as zip_file:
+            for file_name in file_names:
+                zip_file.writestr(file_name, downloaded_file)
+
+        zip_buffer.seek(0)
+        bot.send_document(message.chat.id, zip_buffer, visible_file_name='renamed_images.zip')
+
+    except Exception as e:
+        bot.reply_to(message, f'Ошибка при архивации изображений: {e}')
 
 bot.infinity_polling()
