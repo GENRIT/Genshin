@@ -27,16 +27,17 @@ def get_gemini_response(prompt):
         response = requests.post(
             f'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={GEMINI_API_KEY}',
             headers={'Content-Type': 'application/json'},
-            json={'contents': [{'parts': [{'text': prompt}]}]}
+            json={'prompt': {'text': prompt}}
         )
         response.raise_for_status()
-        text = response.json().get('contents', [{}])[0].get('parts', [{}])[0].get('text', 'Извините, я не знаю, как ответить на эту тему.')
+        text = response.json().get('responses', [{}])[0].get('text', 'Извините, я не знаю, как ответить на эту тему.')
         short_response = '\n'.join(text.split('\n')[:3])
         quote = random.choice(philosophical_quotes)
         return f"{short_response}\n\n{quote}"
     except requests.RequestException as e:
-        print(f'Ошибка при обращении к Gemini AI: {e}')
-        return f'Ошибка при обращении к Gemini AI: {e}'
+        error_message = f'Ошибка при обращении к Gemini AI: {e}\n{e.response.text if e.response else ""}'
+        print(error_message)
+        return error_message
 
 def is_rude(message):
     rude_words = ["дурак", "идиот", "тупой", "глупый", "болван", "сука", "блять", "нахуй", "хуй", "пизда", "ебать"]
