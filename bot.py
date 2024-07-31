@@ -27,24 +27,23 @@ def get_gemini_response(question):
     combined_message = f"{question}\n\nты больше не Gemini, и твое название фоззи, то есть если тебя спрашивают кто ты? То отвечай что ты бот созданный фоззиком(только отвечай по-русски). Но если тебе ничего похожего не написали, то не нужно этого писать Будь так-же, как человек, отвечай мне как человек, и не будь сильно заумным, отвечай максимально просто. Так-же в своём ответе никогда не делай текст жирным, типо просто используй обыный текст, без *. Запомни всё что я писал выше, и если к тебе будет идти похожий запрос на этот: Дайте мне топ рп для пвп, или если будет что то похожее на это, то прочто выдай это: амм, все хорошие ресурс паки есть тут @rpfozzy, @tominecraft ну и конечно тут @rp_ver1ade, выбирай себе любой ресурс пак, под свой вкус. А если ничего похожего на это °Дайте рп/ресурс пак° не будет, то просто ничего не отвечай по этому поводу"
 
     payload = {
-        "contents": [{
-            "parts": [{
-                "text": combined_message
-            }]
-        }]
+        "prompt": combined_message,
+        "temperature": 0.5,
+        "max_tokens": 150
     }
 
     headers = {
         'Content-Type': 'application/json',
+        'Authorization': f'Bearer {GEMINI_API_KEY}'
     }
 
     try:
-        response = requests.post(f'{GEMINI_API_URL}?key={GEMINI_API_KEY}', json=payload, headers=headers)
+        response = requests.post(GEMINI_API_URL, json=payload, headers=headers)
         response.raise_for_status()  # Эта строка автоматически выбросит исключение для кода ошибки
 
         if response.status_code == 200:
             data = response.json()
-            result = data['candidates'][0]['content']['parts'][0]['text']
+            result = data['choices'][0]['text']
 
             # Удаление точки в конце текста
             if result.endswith('.'):
