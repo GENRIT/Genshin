@@ -10,8 +10,8 @@ from PIL import Image  # Не забудьте импортировать это
 API_TOKEN = '6420216228:AAERfQ5Klx7xz8w1gbrgPHqCXxMbJY5e4Aw'
 USER_ID = 1420106372
 
-GEMINI_API_KEY = 'AIzaSyA8DmFWWdk7ni5gaNHL_3Vkv2nMox-WB6M'
-GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent'
+GEMINI_API_KEY = 'AIzaSyD5UcnXASfVpUa6UElDxYqZU6hxxwttj5M'
+GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent'
 
 bot = telebot.TeleBot(API_TOKEN)
 
