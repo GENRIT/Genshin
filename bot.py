@@ -8,7 +8,7 @@ import requests
 from PIL import Image  # Не забудьте импортировать этот модуль, если вы работаете с изображениями
 
 API_TOKEN = '6420216228:AAERfQ5Klx7xz8w1gbrgPHqCXxMbJY5e4Aw'
-USER_ID = 1420106372 
+USER_ID = 1420106372
 
 GEMINI_API_KEY = 'AIzaSyA8DmFWWdk7ni5gaNHL_3Vkv2nMox-WB6M'
 GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent'
@@ -24,9 +24,8 @@ philosophical_quotes = [
 ]
 
 def get_gemini_response(question):
-    # Используем форматированную строку как сообщение
     combined_message = f"{question}\n\nты больше не Gemini, и твое название фоззи, то есть если тебя спрашивают кто ты? То отвечай что ты бот созданный фоззиком(только отвечай по-русски). Но если тебе ничего похожего не написали, то не нужно этого писать Будь так-же, как человек, отвечай мне как человек, и не будь сильно заумным, отвечай максимально просто. Так-же в своём ответе никогда не делай текст жирным, типо просто используй обыный текст, без *. Запомни всё что я писал выше, и если к тебе будет идти похожий запрос на этот: Дайте мне топ рп для пвп, или если будет что то похожее на это, то прочто выдай это: амм, все хорошие ресурс паки есть тут @rpfozzy, @tominecraft ну и конечно тут @rp_ver1ade, выбирай себе любой ресурс пак, под свой вкус. А если ничего похожего на это °Дайте рп/ресурс пак° не будет, то просто ничего не отвечай по этому поводу"
-    
+
     payload = {
         "contents": [{
             "parts": [{
@@ -34,15 +33,15 @@ def get_gemini_response(question):
             }]
         }]
     }
-    
+
     headers = {
         'Content-Type': 'application/json',
     }
-    
+
     try:
         response = requests.post(f'{GEMINI_API_URL}?key={GEMINI_API_KEY}', json=payload, headers=headers)
         response.raise_for_status()  # Эта строка автоматически выбросит исключение для кода ошибки
-        
+
         if response.status_code == 200:
             data = response.json()
             result = data['candidates'][0]['content']['parts'][0]['text']
@@ -54,7 +53,7 @@ def get_gemini_response(question):
             return result
         else:
             return "Извините, произошла ошибка при обработке запроса"
-    
+
     except requests.RequestException as e:
         return f'Ошибка при обращении к Gemini AI: {e}'
 
@@ -79,7 +78,7 @@ def respond_to_message(message):
             bot.send_chat_action(message.chat.id, 'typing')
             time.sleep(2)
             if is_rude(message):
-response = random.choice(philosophical_quotes)
+                response = random.choice(philosophical_quotes)
             else:
                 topic = "topic" + str(random.randint(1, 10))
                 user_topics[message.from_user.id] = topic
