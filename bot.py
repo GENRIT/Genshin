@@ -79,7 +79,6 @@ def respond_to_message(message):
             bot.send_chat_action(message.chat.id, 'typing')
             time.sleep(2)
             if is_rude(message):
-
 response = random.choice(philosophical_quotes)
             else:
                 topic = "topic" + str(random.randint(1, 10))
