@@ -7,7 +7,7 @@ import time
 import requests
 from PIL import Image  # Не забудьте импортировать этот модуль, если вы работаете с изображениями
 
-API_TOKEN = '6420216228:AAFgkx1SNpvvFek9ACHdMJ-h4IirruRqCTI'
+API_TOKEN = '6420216228:AAERfQ5Klx7xz8w1gbrgPHqCXxMbJY5e4Aw'
 USER_ID = 1420106372 
 
 GEMINI_API_KEY = 'AIzaSyA8DmFWWdk7ni5gaNHL_3Vkv2nMox-WB6M'
