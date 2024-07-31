@@ -4,6 +4,7 @@ from PIL import Image
 from io import BytesIO
 import zipfile
 import random
+import time
 
 # Вставьте сюда ваш токен и ID
 API_TOKEN = '6420216228:AAFgkx1SNpvvFek9ACHdMJ-h4IirruRqCTI'
@@ -147,7 +148,7 @@ def get_unique_response(topic):
     return random.choice(responses)
 
 def is_rude(message):
-    rude_words = ["дурак", "идиот", "тупой", "глупый", "болван"]
+    rude_words = ["дурак", "идиот", "тупой", "глупый", "болван", "сука", "блять", "нахуй", "хуй", "пизда", "ебать"]
     return any(word in message.text.lower() for word in rude_words)
 
 # Отслеживание текущей темы для каждого пользователя
@@ -166,18 +167,20 @@ def respond_to_message(message):
     if message.chat.type in ["group", "supergroup", "private"]:
         if any(word in message.text.lower() for word in ["рустам", "рустик", "привет", "ку", "здравствуйте", "хай"]):
             bot.send_chat_action(message.chat.id, 'typing')  # Отображение "печатает..."
+            time.sleep(2)  # Задержка 2 секунды
             if is_rude(message):
                 response = random.choice(philosophical_responses)
             else:
                 topic = "topic" + str(random.randint(1, 10))
                 user_topics[message.from_user.id] = topic
                 response = get_unique_response(topic)
-            bot.send_message(message.chat.id, response)
+            bot.reply_to(message, response)
         elif message.reply_to_message and message.reply_to_message.from_user.id == bot.get_me().id:
             bot.send_chat_action(message.chat.id, 'typing')
+            time.sleep(2)  # Задержка 2 секунды
             topic = user_topics.get(message.from_user.id, "topic1")
             response = get_unique_response(topic)
-            bot.send_message(message.chat.id, response)
+            bot.reply_to(message, response)
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query(call):
