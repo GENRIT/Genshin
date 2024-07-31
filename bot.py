@@ -7,7 +7,6 @@ import random
 import time
 import requests
 
-# Вставьте сюда ваш токен и ID
 API_TOKEN = '6420216228:AAFgkx1SNpvvFek9ACHdMJ-h4IirruRqCTI'
 USER_ID = 1420106372
 
@@ -32,19 +31,17 @@ def get_gemini_response(prompt):
         )
         response.raise_for_status()
         text = response.json().get('text', 'Извините, я не знаю, как ответить на эту тему.')
-        # Ограничение длины ответа до 3 строк
         short_response = '\n'.join(text.split('\n')[:3])
-        # Добавление философской цитаты
         quote = random.choice(philosophical_quotes)
         return f"{short_response}\n\n{quote}"
     except requests.RequestException as e:
+        print(f'Ошибка при обращении к Gemini AI: {e}')
         return f'Ошибка при обращении к Gemini AI: {e}'
 
 def is_rude(message):
     rude_words = ["дурак", "идиот", "тупой", "глупый", "болван", "сука", "блять", "нахуй", "хуй", "пизда", "ебать"]
     return any(word in message.text.lower() for word in rude_words)
 
-# Отслеживание текущей темы для каждого пользователя
 user_topics = {}
 
 @bot.message_handler(commands=['start'])
@@ -59,8 +56,8 @@ def send_welcome(message):
 def respond_to_message(message):
     if message.chat.type in ["group", "supergroup", "private"]:
         if any(word in message.text.lower() for word in ["рустам", "рустик", "привет", "ку", "здравствуйте", "хай"]):
-            bot.send_chat_action(message.chat.id, 'typing')  # Отображение "печатает..."
-            time.sleep(2)  # Задержка 2 секунды
+            bot.send_chat_action(message.chat.id, 'typing')
+            time.sleep(2)
             if is_rude(message):
                 response = random.choice(philosophical_quotes)
             else:
@@ -70,7 +67,7 @@ def respond_to_message(message):
             bot.reply_to(message, response)
         elif message.reply_to_message and message.reply_to_message.from_user.id == bot.get_me().id:
             bot.send_chat_action(message.chat.id, 'typing')
-            time.sleep(2)  # Задержка 2 секунды
+            time.sleep(2)
             topic = user_topics.get(message.from_user.id, "topic1")
             response = get_gemini_response(message.text)
             bot.reply_to(message, response)
@@ -89,8 +86,8 @@ def handle_image_processing(message):
         bot.reply_to(message, "Извините, вы не авторизованы для использования этого бота.")
         return
 
-    if message.content_type != 'document' or not message.document.mime_type.startswith('image/'):
-        bot.reply_to(message, "Пожалуйста, отправьте файл изображения.")
+    if message.content_type != 'document' or not message.document.mime_type == 'image/png':
+        bot.reply_to(message, "Пожалуйста, отправьте PNG файл.")
         return
 
     try:
@@ -123,6 +120,7 @@ def handle_image_processing(message):
         bot.send_document(message.chat.id, processed_image_bytes, visible_file_name='processed_image.png')
     except Exception as e:
         bot.reply_to(message, f'Ошибка при обработке изображения: {e}')
+        print(f'Ошибка при обработке изображения: {e}')
 
 def handle_image_renaming_and_zipping(message):
     if message.from_user.id != USER_ID:
@@ -161,5 +159,6 @@ def handle_image_renaming_and_zipping(message):
 
     except Exception as e:
         bot.reply_to(message, f'Ошибка при архивации изображений: {e}')
+        print(f'Ошибка при архивации изображений: {e}')
 
 bot.infinity_polling()
