@@ -5,10 +5,13 @@ from io import BytesIO
 import zipfile
 import random
 import time
+import requests
 
 # Вставьте сюда ваш токен и ID
 API_TOKEN = '6420216228:AAFgkx1SNpvvFek9ACHdMJ-h4IirruRqCTI'
 USER_ID = 1420106372
+
+GEMINI_API_KEY = 'AIzaSyA8DmFWWdk7ni5gaNHL_3Vkv2nMox-WB6M'
 
 bot = telebot.TeleBot(API_TOKEN)
 
@@ -144,8 +147,22 @@ philosophical_responses = [
 ]
 
 def get_unique_response(topic):
-    responses = unique_responses.get(topic, ["Извините, я не знаю, как ответить на эту тему."])
+    responses = unique_responses.get(topic, None)
+    if responses is None:
+        return get_gemini_response(topic)
     return random.choice(responses)
+
+def get_gemini_response(prompt):
+    try:
+        response = requests.post(
+            'https://api.gemini.ai/v1/text',
+            headers={'Authorization': f'Bearer {GEMINI_API_KEY}'},
+            json={'prompt': prompt}
+        )
+        response.raise_for_status()
+        return response.json().get('text', 'Извините, я не знаю, как ответить на эту тему.')
+    except requests.RequestException as e:
+        return f'Ошибка при обращении к Gemini AI: {e}'
 
 def is_rude(message):
     rude_words = ["дурак", "идиот", "тупой", "глупый", "болван", "сука", "блять", "нахуй", "хуй", "пизда", "ебать"]
