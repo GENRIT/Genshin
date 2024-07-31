@@ -25,12 +25,12 @@ philosophical_quotes = [
 def get_gemini_response(prompt):
     try:
         response = requests.post(
-            'https://api.gemini.ai/v1/text',
-            headers={'Authorization': f'Bearer {GEMINI_API_KEY}'},
-            json={'prompt': prompt}
+            f'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={GEMINI_API_KEY}',
+            headers={'Content-Type': 'application/json'},
+            json={'contents': [{'parts': [{'text': prompt}]}]}
         )
         response.raise_for_status()
-        text = response.json().get('text', 'Извините, я не знаю, как ответить на эту тему.')
+        text = response.json().get('contents', [{}])[0].get('parts', [{}])[0].get('text', 'Извините, я не знаю, как ответить на эту тему.')
         short_response = '\n'.join(text.split('\n')[:3])
         quote = random.choice(philosophical_quotes)
         return f"{short_response}\n\n{quote}"
