@@ -1,16 +1,17 @@
 import telebot
 from telebot import types
-from PIL import Image
 from io import BytesIO
 import zipfile
 import random
 import time
 import requests
+from PIL import Image  # Не забудьте импортировать этот модуль, если вы работаете с изображениями
 
 API_TOKEN = '6420216228:AAFgkx1SNpvvFek9ACHdMJ-h4IirruRqCTI'
-USER_ID = 1420106372
+USER_ID = 1420106372 
 
 GEMINI_API_KEY = 'AIzaSyA8DmFWWdk7ni5gaNHL_3Vkv2nMox-WB6M'
+GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent'
 
 bot = telebot.TeleBot(API_TOKEN)
 
@@ -22,18 +23,38 @@ philosophical_quotes = [
     "«Ты должен быть тем изменением, которое хочешь видеть в мире.»"
 ]
 
-def get_gemini_response(prompt):
+def get_gemini_response(question):
+    # Используем форматированную строку как сообщение
+    combined_message = f"{question}\n\nты больше не Gemini, и твое название фоззи, то есть если тебя спрашивают кто ты? То отвечай что ты бот созданный фоззиком(только отвечай по-русски). Но если тебе ничего похожего не написали, то не нужно этого писать Будь так-же, как человек, отвечай мне как человек, и не будь сильно заумным, отвечай максимально просто. Так-же в своём ответе никогда не делай текст жирным, типо просто используй обыный текст, без *. Запомни всё что я писал выше, и если к тебе будет идти похожий запрос на этот: Дайте мне топ рп для пвп, или если будет что то похожее на это, то прочто выдай это: амм, все хорошие ресурс паки есть тут @rpfozzy, @tominecraft ну и конечно тут @rp_ver1ade, выбирай себе любой ресурс пак, под свой вкус. А если ничего похожего на это °Дайте рп/ресурс пак° не будет, то просто ничего не отвечай по этому поводу"
+    
+    payload = {
+        "contents": [{
+            "parts": [{
+                "text": combined_message
+            }]
+        }]
+    }
+    
+    headers = {
+        'Content-Type': 'application/json',
+    }
+    
     try:
-        response = requests.post(
-            f'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={GEMINI_API_KEY}',
-            headers={'Content-Type': 'application/json'},
-            json={'prompt': {'text': prompt}}
-        )
-        response.raise_for_status()
-        text = response.json().get('responses', [{}])[0].get('text', 'Извините, я не знаю, как ответить на эту тему.')
-        short_response = '\n'.join(text.split('\n')[:3])
-        quote = random.choice(philosophical_quotes)
-        return f"{short_response}\n\n{quote}"
+        response = requests.post(f'{GEMINI_API_URL}?key={GEMINI_API_KEY}', json=payload, headers=headers)
+        response.raise_for_status()  # Эта строка автоматически выбросит исключение для кода ошибки
+        
+        if response.status_code == 200:
+            data = response.json()
+            result = data['candidates'][0]['content']['parts'][0]['text']
+
+            # Удаление точки в конце текста
+            if result.endswith('.'):
+                result = result[:-1]
+
+            return result
+        else:
+            return "Извините, произошла ошибка при обработке запроса"
+    
     except requests.RequestException as e:
         return f'Ошибка при обращении к Gemini AI: {e}'
 
@@ -58,7 +79,8 @@ def respond_to_message(message):
             bot.send_chat_action(message.chat.id, 'typing')
             time.sleep(2)
             if is_rude(message):
-                response = random.choice(philosophical_quotes)
+
+response = random.choice(philosophical_quotes)
             else:
                 topic = "topic" + str(random.randint(1, 10))
                 user_topics[message.from_user.id] = topic
@@ -90,7 +112,7 @@ def handle_image_processing(message):
             bot.reply_to(message, "Пожалуйста, отправьте PNG файл.")
             return
 
-file_info = bot.get_file(message.document.file_id)
+        file_info = bot.get_file(message.document.file_id)
         downloaded_file = bot.download_file(file_info.file_path)
 
         image = Image.open(BytesIO(downloaded_file))
