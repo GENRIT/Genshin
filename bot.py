@@ -1,4 +1,3 @@
-ㅤ:
 import telebot
 from telebot import types
 from PIL import Image
