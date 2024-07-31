@@ -150,6 +150,9 @@ def is_rude(message):
     rude_words = ["дурак", "идиот", "тупой", "глупый", "болван"]
     return any(word in message.text.lower() for word in rude_words)
 
+# Отслеживание текущей темы для каждого пользователя
+user_topics = {}
+
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     markup = types.InlineKeyboardMarkup()
@@ -161,13 +164,19 @@ def send_welcome(message):
 @bot.message_handler(func=lambda message: True)
 def respond_to_message(message):
     if message.chat.type in ["group", "supergroup", "private"]:
-        if "рустам" in message.text.lower():
+        if any(word in message.text.lower() for word in ["рустам", "рустик", "привет", "ку", "здравствуйте", "хай"]):
             bot.send_chat_action(message.chat.id, 'typing')  # Отображение "печатает..."
             if is_rude(message):
                 response = random.choice(philosophical_responses)
             else:
                 topic = "topic" + str(random.randint(1, 10))
+                user_topics[message.from_user.id] = topic
                 response = get_unique_response(topic)
+            bot.send_message(message.chat.id, response)
+        elif message.reply_to_message and message.reply_to_message.from_user.id == bot.get_me().id:
+            bot.send_chat_action(message.chat.id, 'typing')
+            topic = user_topics.get(message.from_user.id, "topic1")
+            response = get_unique_response(topic)
             bot.send_message(message.chat.id, response)
 
 @bot.callback_query_handler(func=lambda call: True)
