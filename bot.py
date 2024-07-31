@@ -3,7 +3,6 @@ from telebot import types
 from PIL import Image
 from io import BytesIO
 import zipfile
-import random
 import time
 import requests
 
@@ -14,14 +13,6 @@ GEMINI_API_KEY = 'AIzaSyA8DmFWWdk7ni5gaNHL_3Vkv2nMox-WB6M'
 
 bot = telebot.TeleBot(API_TOKEN)
 
-philosophical_quotes = [
-    "«Уважение — это дорога с двусторонним движением.»",
-    "«Иногда лучше молчать и показаться мудрым, чем говорить и развеять все сомнения.»",
-    "«Грубость — это слабость, переодетая в силу.»",
-    "«Терпение и мудрость всегда побеждают гнев.»",
-    "«Ты должен быть тем изменением, которое хочешь видеть в мире.»"
-]
-
 def get_gemini_response(prompt):
     try:
         response = requests.post(
@@ -31,9 +22,7 @@ def get_gemini_response(prompt):
         )
         response.raise_for_status()
         text = response.json().get('responses', [{}])[0].get('text', 'Извините, я не знаю, как ответить на эту тему.')
-        short_response = '\n'.join(text.split('\n')[:3])
-        quote = random.choice(philosophical_quotes)
-        return f"{short_response}\n\n{quote}"
+        return text
     except requests.RequestException as e:
         error_message = f'Ошибка при обращении к Gemini AI: {e}\n{e.response.text if e.response else ""}'
         print(error_message)
@@ -60,7 +49,7 @@ def respond_to_message(message):
             bot.send_chat_action(message.chat.id, 'typing')
             time.sleep(2)
             if is_rude(message):
-                response = random.choice(philosophical_quotes)
+                response = "Пожалуйста, будьте вежливы."
             else:
                 topic = "topic" + str(random.randint(1, 10))
                 user_topics[message.from_user.id] = topic
