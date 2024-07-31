@@ -162,6 +162,7 @@ def send_welcome(message):
 def respond_to_message(message):
     if message.chat.type in ["group", "supergroup", "private"]:
         if "рустам" in message.text.lower():
+            bot.send_chat_action(message.chat.id, 'typing')  # Отображение "печатает..."
             if is_rude(message):
                 response = random.choice(philosophical_responses)
             else:
