@@ -15,12 +15,12 @@ GEMINI_API_KEY = 'AIzaSyA8DmFWWdk7ni5gaNHL_3Vkv2nMox-WB6M'
 
 bot = telebot.TeleBot(API_TOKEN)
 
-philosophical_responses = [
-    "Уважение - это дорога с двусторонним движением.",
-    "Иногда лучше молчать и показаться мудрым, чем говорить и развеять все сомнения.",
-    "Грубость - это слабость, переодетая в силу.",
-    "Терпение и мудрость всегда побеждают гнев.",
-    "Ты должен быть тем изменением, которое хочешь видеть в мире."
+philosophical_quotes = [
+    "«Уважение — это дорога с двусторонним движением.»",
+    "«Иногда лучше молчать и показаться мудрым, чем говорить и развеять все сомнения.»",
+    "«Грубость — это слабость, переодетая в силу.»",
+    "«Терпение и мудрость всегда побеждают гнев.»",
+    "«Ты должен быть тем изменением, которое хочешь видеть в мире.»"
 ]
 
 def get_gemini_response(prompt):
@@ -28,16 +28,24 @@ def get_gemini_response(prompt):
         response = requests.post(
             'https://api.gemini.ai/v1/text',
             headers={'Authorization': f'Bearer {GEMINI_API_KEY}'},
-            json={'prompt': prompt, 'max_tokens': 50, 'temperature': 0.7}
+            json={'prompt': prompt}
         )
         response.raise_for_status()
-        return response.json().get('text', 'Извините, я не знаю, как ответить на эту тему.')
+        text = response.json().get('text', 'Извините, я не знаю, как ответить на эту тему.')
+        # Ограничение длины ответа до 3 строк
+        short_response = '\n'.join(text.split('\n')[:3])
+        # Добавление философской цитаты
+        quote = random.choice(philosophical_quotes)
+        return f"{short_response}\n\n{quote}"
     except requests.RequestException as e:
         return f'Ошибка при обращении к Gemini AI: {e}'
 
 def is_rude(message):
     rude_words = ["дурак", "идиот", "тупой", "глупый", "болван", "сука", "блять", "нахуй", "хуй", "пизда", "ебать"]
     return any(word in message.text.lower() for word in rude_words)
+
+# Отслеживание текущей темы для каждого пользователя
+user_topics = {}
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
@@ -54,10 +62,17 @@ def respond_to_message(message):
             bot.send_chat_action(message.chat.id, 'typing')  # Отображение "печатает..."
             time.sleep(2)  # Задержка 2 секунды
             if is_rude(message):
-                response = random.choice(philosophical_responses)
+                response = random.choice(philosophical_quotes)
             else:
-                prompt = "Ответь философски на сообщение: " + message.text
-                response = get_gemini_response(prompt)
+                topic = "topic" + str(random.randint(1, 10))
+                user_topics[message.from_user.id] = topic
+                response = get_gemini_response(message.text)
+            bot.reply_to(message, response)
+        elif message.reply_to_message and message.reply_to_message.from_user.id == bot.get_me().id:
+            bot.send_chat_action(message.chat.id, 'typing')
+            time.sleep(2)  # Задержка 2 секунды
+            topic = user_topics.get(message.from_user.id, "topic1")
+            response = get_gemini_response(message.text)
             bot.reply_to(message, response)
 
 @bot.callback_query_handler(func=lambda call: True)
@@ -114,7 +129,7 @@ def handle_image_renaming_and_zipping(message):
         bot.reply_to(message, "Извините, вы не авторизованы для использования этого бота.")
         return
 
-    if message.content_type != 'document' или не message.document.mime_type.startswith('image/'):
+    if message.content_type != 'document' or not message.document.mime_type.startswith('image/'):
         bot.reply_to(message, "Пожалуйста, отправьте файл изображения.")
         return
 
