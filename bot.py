@@ -134,7 +134,6 @@ unique_responses = {
     ]
 }
 
-# Примеры философских ответов на хамство
 philosophical_responses = [
     "Уважение - это дорога с двусторонним движением.",
     "Иногда лучше молчать и показаться мудрым, чем говорить и развеять все сомнения.",
@@ -161,13 +160,14 @@ def send_welcome(message):
 
 @bot.message_handler(func=lambda message: True)
 def respond_to_message(message):
-    if message.chat.type in ["group", "supergroup"]:
-        if is_rude(message):
-            response = random.choice(philosophical_responses)
-        else:
-            topic = "topic" + str(random.randint(1, 10))
-            response = get_unique_response(topic)
-        bot.send_message(message.chat.id, response)
+    if message.chat.type in ["group", "supergroup", "private"]:
+        if "рустам" in message.text.lower():
+            if is_rude(message):
+                response = random.choice(philosophical_responses)
+            else:
+                topic = "topic" + str(random.randint(1, 10))
+                response = get_unique_response(topic)
+            bot.send_message(message.chat.id, response)
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query(call):
