@@ -3,23 +3,171 @@ from telebot import types
 from PIL import Image
 from io import BytesIO
 import zipfile
-import os
-import uuid
+import random
 
-# Insert your token and ID
+# Вставьте сюда ваш токен и ID
 API_TOKEN = '6420216228:AAFgkx1SNpvvFek9ACHdMJ-h4IirruRqCTI'
 USER_ID = 1420106372
 
 bot = telebot.TeleBot(API_TOKEN)
+
+unique_responses = {
+    "topic1": [
+        "Привет! Как твои дела?",
+        "Что нового?",
+        "Чем занимаешься в свободное время?",
+        "Как ты провёл сегодняшний день?",
+        "Какие у тебя планы на выходные?",
+        "Отлично, спасибо! А у тебя?",
+        "Ничего особенного, всё по-старому.",
+        "Читаю книгу и отдыхаю.",
+        "Сегодня был довольно продуктивный день.",
+        "Думаю поехать за город."
+    ],
+    "topic2": [
+        "Какую книгу ты недавно прочитал?",
+        "Какие фильмы тебе нравятся?",
+        "Есть ли у тебя любимый сериал?",
+        "Что ты думаешь о современных книгах?",
+        "Есть ли у тебя любимый жанр литературы?",
+        "Недавно прочитал '1984' Джорджа Оруэлла.",
+        "Люблю научную фантастику и драмы.",
+        "Сейчас смотрю 'Игру престолов'.",
+        "Современные книги часто затрагивают важные темы.",
+        "Предпочитаю детективы и триллеры."
+    ],
+    "topic3": [
+        "Какую музыку ты слушаешь?",
+        "У тебя есть любимый исполнитель?",
+        "Какие жанры музыки тебе нравятся?",
+        "Слушаешь ли ты музыку во время работы?",
+        "Какая песня тебе нравится больше всего?",
+        "Слушаю рок и поп.",
+        "Очень люблю музыку группы Queen.",
+        "Чаще всего слушаю джаз и блюз.",
+        "Да, музыка помогает мне сосредоточиться.",
+        "Сейчас моя любимая песня - 'Bohemian Rhapsody'."
+    ],
+    "topic4": [
+        "Как ты относишься к искусству?",
+        "Есть ли у тебя любимый художник?",
+        "Какую выставку ты бы хотел посетить?",
+        "Что для тебя искусство?",
+        "Какие виды искусства тебе нравятся?",
+        "Искусство - это способ самовыражения.",
+        "Мне нравится работа Ван Гога.",
+        "Хотел бы посетить выставку в Лувре.",
+        "Искусство помогает понять мир.",
+        "Я люблю живопись и скульптуру."
+    ],
+    "topic5": [
+        "Какой твой любимый спорт?",
+        "За какую команду ты болеешь?",
+        "Занимаешься ли ты каким-то спортом?",
+        "Как ты относишься к активному отдыху?",
+        "Есть ли у тебя спортивные достижения?",
+        "Люблю футбол и теннис.",
+        "Болею за команду Барселона.",
+        "Иногда играю в баскетбол.",
+        "Активный отдых - это отличная возможность отдохнуть.",
+        "Участвовал в марафоне и занял призовое место."
+    ],
+    "topic6": [
+        "Какие страны ты бы хотел посетить?",
+        "Какое самое интересное место ты посетил?",
+        "Есть ли у тебя мечта путешествовать по миру?",
+        "Какой город тебе понравился больше всего?",
+        "Что для тебя значит путешествие?",
+        "Хотел бы побывать в Японии и Австралии.",
+        "Мне очень понравилось в Париже.",
+        "Да, мечтаю объездить весь мир.",
+        "Очень понравился Лондон.",
+        "Путешествие - это возможность увидеть что-то новое."
+    ],
+    "topic7": [
+        "Как ты проводишь выходные?",
+        "Что ты обычно делаешь по вечерам?",
+        "Какой у тебя хобби?",
+        "Как ты отдыхаешь после работы?",
+        "Есть ли у тебя традиции на выходные?",
+        "Чаще всего встречаюсь с друзьями.",
+        "Смотрю фильмы или читаю книги.",
+        "Люблю фотографировать.",
+        "После работы люблю заниматься спортом.",
+        "Каждые выходные хожу в парк."
+    ],
+    "topic8": [
+        "Веришь ли ты в судьбу?",
+        "Считаешь ли ты, что у каждого есть своя цель в жизни?",
+        "Как ты думаешь, что такое счастье?",
+        "Что для тебя важно в жизни?",
+        "Как ты относишься к философии?",
+        "Да, я верю в судьбу.",
+        "Уверен, что у каждого есть свое предназначение.",
+        "Счастье - это состояние внутреннего мира.",
+        "Для меня важны семья и друзья.",
+        "Философия помогает понять смысл жизни."
+    ],
+    "topic9": [
+        "Как ты относишься к науке?",
+        "Какую научную теорию ты считаешь самой интересной?",
+        "Кто твой любимый ученый?",
+        "Какие научные открытия тебя впечатляют?",
+        "Как ты думаешь, будущее науки?",
+        "Наука - это ключ к прогрессу.",
+        "Очень интересна теория относительности.",
+        "Мой любимый ученый - Альберт Эйнштейн.",
+        "Меня впечатляет квантовая физика.",
+        "Думаю, наука изменит наш мир к лучшему."
+    ],
+    "topic10": [
+        "Как ты видишь будущее технологий?",
+        "Какие технологии тебя впечатляют?",
+        "Как ты думаешь, что нас ждет через 50 лет?",
+        "Что ты думаешь о роботах?",
+        "Какие технологии ты бы хотел увидеть?",
+        "Будущее технологий обещает быть захватывающим.",
+        "Меня впечатляют искусственный интеллект и VR.",
+        "Через 50 лет мы будем жить в совершенно новом мире.",
+        "Роботы могут значительно облегчить нашу жизнь.",
+        "Хотел бы увидеть технологию телепортации."
+    ]
+}
+
+# Примеры философских ответов на хамство
+philosophical_responses = [
+    "Уважение - это дорога с двусторонним движением.",
+    "Иногда лучше молчать и показаться мудрым, чем говорить и развеять все сомнения.",
+    "Грубость - это слабость, переодетая в силу.",
+    "Терпение и мудрость всегда побеждают гнев.",
+    "Ты должен быть тем изменением, которое хочешь видеть в мире."
+]
+
+def get_unique_response(topic):
+    responses = unique_responses.get(topic, ["Извините, я не знаю, как ответить на эту тему."])
+    return random.choice(responses)
+
+def is_rude(message):
+    rude_words = ["дурак", "идиот", "тупой", "глупый", "болван"]
+    return any(word in message.text.lower() for word in rude_words)
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     markup = types.InlineKeyboardMarkup()
     process_button = types.InlineKeyboardButton("Обработать PNG 128x128", callback_data="process_image")
     rename_zip_button = types.InlineKeyboardButton("Переименовать и заархивировать изображение", callback_data="rename_zip")
-    zip_to_mcpack_button = types.InlineKeyboardButton("Конвертировать ZIP в MCPACK", callback_data="zip_to_mcpack")
-    markup.add(process_button, rename_zip_button, zip_to_mcpack_button)
-    bot.send_message(message.chat.id, "Выберите действие:", reply_markup=markup)
+    markup.add(process_button, rename_zip_button)
+    bot.send_message(message.chat.id, "Привет! Я Рустам 2.0. Выберите действие:", reply_markup=markup)
+
+@bot.message_handler(func=lambda message: True)
+def respond_to_message(message):
+    if message.chat.type in ["group", "supergroup"]:
+        if is_rude(message):
+            response = random.choice(philosophical_responses)
+        else:
+            topic = "topic" + str(random.randint(1, 10))
+            response = get_unique_response(topic)
+        bot.send_message(message.chat.id, response)
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query(call):
@@ -29,9 +177,6 @@ def callback_query(call):
     elif call.data == "rename_zip":
         bot.answer_callback_query(call.id, "Отправьте изображение для переименования и архивации.")
         bot.register_next_step_handler(call.message, handle_image_renaming_and_zipping)
-    elif call.data == "zip_to_mcpack":
-        bot.answer_callback_query(call.id, "Пожалуйста, загрузите ваш .zip файл для конвертации в .mcpack.")
-        bot.register_next_step_handler(call.message, handle_zip_to_mcpack)
 
 def handle_image_processing(message):
     if message.from_user.id != USER_ID:
@@ -110,97 +255,5 @@ def handle_image_renaming_and_zipping(message):
 
     except Exception as e:
         bot.reply_to(message, f'Ошибка при архивации изображений: {e}')
-
-def handle_zip_to_mcpack(message):
-    if message.from_user.id != USER_ID:
-        bot.reply_to(message, "Извините, вы не авторизованы для использования этого бота.")
-        return
-
-    if message.content_type != 'document' or message.document.mime_type != 'application/zip':
-        bot.reply_to(message, "Пожалуйста, загрузите файл .zip.")
-        return
-
-    try:
-        file_info = bot.get_file(message.document.file_id)
-        downloaded_file = bot.download_file(file_info.file_path)
-
-        zip_path = "input.zip"
-        with open(zip_path, "wb") as f:
-            f.write(downloaded_file)
-
-        mcpack_path = convert_zip_to_mcpack(zip_path)
-        with open(mcpack_path, "rb") as f:
-            bot.send_document(message.chat.id, f, visible_file_name='converted.mcpack')
-
-        os.remove(zip_path)
-        os.remove(mcpack_path)
-    except Exception as e:
-        bot.reply_to(message, f'Ошибка при конвертации .zip в .mcpack: {e}')
-
-def convert_zip_to_mcpack(zip_path):
-    mcpack_path = zip_path.replace(".zip", ".mcpack")
-    with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-        with zipfile.ZipFile(mcpack_path, 'w') as mcpack_ref:
-            for item in zip_ref.infolist():
-                buffer = zip_ref.read(item.filename)
-
-                new_filename = rename_and_restructure(item.filename)
-                if new_filename:
-                    mcpack_ref.writestr(new_filename, buffer)
-
-            mcpack_ref.writestr('manifest.json', generate_manifest())
-
-    return mcpack_path
-
-def rename_and_restructure(filename):
-    if filename == "credits.txt":
-        return None
-    elif filename == "pack.png":
-        return "pack_icon.png"
-    elif filename.startswith("assets/minecraft/textures/"):
-        return filename.replace("assets/minecraft/textures/", "textures/")
-    elif filename.startswith("assets/minecraft/sounds/"):
-        return filename.replace("assets/minecraft/sounds/", "sounds/")
-    elif filename.startswith("textures/block/"):
-        return filename.replace("textures/block/", "textures/blocks/")
-    elif filename.startswith("textures/item/"):
-        return filename.replace("textures/item/", "textures/items/")
-    elif filename.startswith("textures/blocks/fire_layer_"):
-        return "textures/flame_atlas.png"
-    elif filename.startswith("textures/models/armor/"):
-        return filename.replace("chainmail_layer_", "chain_").replace("diamond_layer_", "diamond_") \
-                       .replace("iron_layer_", "iron_").replace("gold_layer_", "gold_") \
-                       .replace("leather_layer_", "cloth_")
-    elif filename in ["textures/models/armor/leather_layer_1_overlay.png", "textures/models/armor/leather_layer_2_overlay.png"]:
-        return None
-    elif filename.startswith("textures/entity/chest/"):
-        if filename == "textures/entity/chest/normal_double.png":
-            return "textures/entity/chest/double_normal.png"
-    elif filename in ["textures/font/", "font/"]:
-        return None
-    else:
-        return filename
-
-def generate_manifest():
-    uuid1 = str(uuid.uuid4())
-    uuid2 = str(uuid.uuid4())
-    manifest_content = f"""{{
-   "format_version" : 1,
-   "header" : {{
-      "description" : "creator of thefozzy project",
-      "name" : "§f§l§oCONVERT ZIP TO MCPACK",
-      "uuid" : "{uuid1}",
-      "version" : [ 3, 0, 0 ]
-   }},
-   "modules" : [
-      {{
-         "description" : "",
-         "type" : "resources",
-         "uuid" : "{uuid2}",
-         "version" : [ 1, 0, 0 ]
-      }}
-   ]
-}}"""
-    return manifest_content
 
 bot.infinity_polling()
