@@ -150,9 +150,6 @@ def is_rude(message):
     rude_words = ["дурак", "идиот", "тупой", "глупый", "болван"]
     return any(word in message.text.lower() for word in rude_words)
 
-# Переменная для отслеживания активного режима
-active_mode = {}
-
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     markup = types.InlineKeyboardMarkup()
@@ -161,16 +158,9 @@ def send_welcome(message):
     markup.add(process_button, rename_zip_button)
     bot.send_message(message.chat.id, "Привет! Я Рустам 2.0. Выберите действие:", reply_markup=markup)
 
-@bot.message_handler(commands=['activate_rustam'])
-def activate_rustam(message):
-    global active_mode
-    active_mode[message.chat.id] = True
-    bot.reply_to(message, "Режим реакции на имя 'рустам' активирован.")
-
 @bot.message_handler(func=lambda message: True)
 def respond_to_message(message):
-    global active_mode
-    if message.chat.type in ["group", "supergroup"] and active_mode.get(message.chat.id, False):
+    if message.chat.type in ["group", "supergroup", "private"]:
         if "рустам" in message.text.lower():
             if is_rude(message):
                 response = random.choice(philosophical_responses)
