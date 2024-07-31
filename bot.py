@@ -5,7 +5,7 @@ import zipfile
 import random
 import time
 import requests
-from PIL import Image  # Не забудьте импортировать этот модуль, если вы работаете с изображениями
+from PIL import Image
 
 API_TOKEN = '6420216228:AAERfQ5Klx7xz8w1gbrgPHqCXxMbJY5e4Aw'
 USER_ID = 1420106372
@@ -40,6 +40,10 @@ def get_gemini_response(question):
     try:
         response = requests.post(GEMINI_API_URL, json=payload, headers=headers)
         response.raise_for_status()  # Эта строка автоматически выбросит исключение для кода ошибки
+
+        # Логирование запроса и ответа
+        print(f"Запрос: {payload}")
+        print(f"Ответ: {response.text}")
 
         if response.status_code == 200:
             data = response.json()
