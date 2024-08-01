@@ -4,8 +4,8 @@ import requests
 
 API_TOKEN = "6420216228:AAERfQ5Klx7xz8w1gbrgPHqCXxMbJY5e4Aw"
 USER_ID = 1420106372
-REQUIRED_CHANNEL = '@your_required_channel'
-STORAGE_CHANNEL = '@your_storage_channel'
+REQUIRED_CHANNEL = '@tominecraft'
+STORAGE_CHANNEL = '@trumpnext'
 
 bot = telebot.TeleBot(API_TOKEN)
 
