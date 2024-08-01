@@ -115,8 +115,8 @@ def confirm_post(call):
         genre = current_post[chat_id]['genre']
         categories[genre].append(post_id)
 
-        # Переслать сообщение в канал-хранилище
-        bot.forward_message(chat_id=STORAGE_CHANNEL, from_chat_id=chat_id, message_id=call.message.message_id - 1)
+        # Отправка сообщения в канал-хранилище с новым mp3 файлом
+        bot.send_document(STORAGE_CHANNEL, posts[post_id]['file_id'], caption=posts[post_id]['title'])
 
         bot.edit_message_text(chat_id=chat_id, message_id=message_id, text="Музыка успешно опубликована!")
     else:
