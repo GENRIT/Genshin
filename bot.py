@@ -158,7 +158,7 @@ def user(message):
         bot.send_message(message.chat.id, 'Выберите категорию:', reply_markup=keyboard)
     else:
         keyboard = types.InlineKeyboardMarkup()
-        subscribe_btn = types.InlineKeyboardButton(text="Подписаться", url=f"{REQUIRED_CHANNEL}")
+        subscribe_btn = types.InlineKeyboardButton(text="Подписаться", url=f"https://t.me/{REQUIRED_CHANNEL}")
         keyboard.add(subscribe_btn)
         bot.send_message(message.chat.id, 'Для использования бота, пожалуйста, подпишитесь на наш канал.', reply_markup=keyboard)
 
