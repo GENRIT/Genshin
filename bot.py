@@ -38,7 +38,7 @@ def start(message):
             publish_btn = types.InlineKeyboardButton(text="Опубликовать", callback_data='publish')
             edit_btn = types.InlineKeyboardButton(text="Изменить пост", callback_data='edit')
             keyboard.add(publish_btn, edit_btn)
-        bot.send_photo(message.chat.id, "https://example.com/photo.jpg", caption='Выберите жанр:', reply_markup=keyboard)
+        bot.send_photo(message.chat.id, "https://graph.org/file/97b374f305468441d985e.jpg", caption='Выберите жанр:', reply_markup=keyboard)
     else:
         keyboard = types.InlineKeyboardMarkup()
         subscribe_btn = types.InlineKeyboardButton(text="Подписаться", url=f"https://t.me/{REQUIRED_CHANNEL}")
