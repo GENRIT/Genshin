@@ -5,8 +5,8 @@ import time
 
 API_TOKEN = "6420216228:AAERfQ5Klx7xz8w1gbrgPHqCXxMbJY5e4Aw"
 USER_ID = 1420106372
-REQUIRED_CHANNEL = '@tominecraft'
-STORAGE_CHANNEL = '@trumpnext'
+REQUIRED_CHANNEL = 'tominecraft'
+STORAGE_CHANNEL = 'trumpnext'
 
 bot = telebot.TeleBot(API_TOKEN)
 
