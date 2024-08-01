@@ -16,7 +16,7 @@ current_post = {}
 
 # Состояния для администраторского функционала
 states = {}
-CHOOSE_ACTION, CHOOSE_GENRE, ENTER_TITLE, UPLOAD_MP3, CONFIRM_POST, EDIT_POST = range(6)
+CHOOSE_ACTION, CHOOSE_GENRE, ENTER_TITLE, UPLOAD_FILE, CONFIRM_POST, EDIT_POST = range(6)
 
 # Функция для проверки подписки
 def is_subscribed(user_id):
@@ -84,20 +84,23 @@ def choose_genre(call):
 def enter_title(message):
     chat_id = message.chat.id
     current_post[chat_id]['title'] = message.text
-    states[chat_id] = UPLOAD_MP3
-    bot.send_message(chat_id, 'Отправьте файл mp3:')
+    states[chat_id] = UPLOAD_FILE
+    bot.send_message(chat_id, 'Отправьте музыкальный файл:')
 
-# Загрузка mp3 файла
-@bot.message_handler(content_types=['document'])
-def upload_mp3(message):
+# Загрузка музыкального файла
+@bot.message_handler(content_types=['audio', 'document'])
+def upload_file(message):
     chat_id = message.chat.id
-    if states.get(chat_id) == UPLOAD_MP3:
-        if message.document.mime_type == 'audio/mpeg':
-            current_post[chat_id]['file_id'] = message.document.file_id
-            current_post[chat_id]['file_unique_id'] = message.document.file_unique_id
+    if states.get(chat_id) == UPLOAD_FILE:
+        if message.content_type == 'audio' or (message.content_type == 'document' and 'audio' in message.document.mime_type):
+            file_id = message.audio.file_id if message.content_type == 'audio' else message.document.file_id
+            file_name = message.audio.file_name if message.content_type == 'audio' else message.document.file_name
+
+            current_post[chat_id]['file_id'] = file_id
+            current_post[chat_id]['file_unique_id'] = message.audio.file_unique_id if message.content_type == 'audio' else message.document.file_unique_id
 
             # Немедленная пересылка файла в канал-хранилище
-            bot.send_document(STORAGE_CHANNEL, message.document.file_id, caption=message.document.file_name)
+            bot.send_document(STORAGE_CHANNEL, file_id, caption=file_name)
 
             # Подтверждение публикации
             keyboard = types.InlineKeyboardMarkup()
@@ -107,7 +110,7 @@ def upload_mp3(message):
             bot.send_message(chat_id, 'Вы уверены, что хотите опубликовать музыку?', reply_markup=keyboard)
             states[chat_id] = CONFIRM_POST
         else:
-            bot.send_message(chat_id, 'Пожалуйста, отправьте mp3 файл.')
+            bot.send_message(chat_id, 'Пожалуйста, отправьте музыкальный файл.')
 
 # Подтверждение публикации
 @bot.callback_query_handler(func=lambda call: call.data in ['confirm_yes', 'confirm_no'])
@@ -135,8 +138,8 @@ def edit_post(call):
     message_id = call.message.message_id
     post_id = int(call.data.split('_')[1])
     current_post[chat_id] = {'post_id': post_id, 'title': posts[post_id]['title']}
-    states[chat_id] = UPLOAD_MP3
-    bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=f"Редактирование поста: {posts[post_id]['title']}\nОтправьте новый файл mp3 или введите новое название.")
+    states[chat_id] = UPLOAD_FILE
+    bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=f"Редактирование поста: {posts[post_id]['title']}\nОтправьте новый музыкальный файл или введите новое название.")
 
 # Команда /user для выбора категорий
 @bot.message_handler(commands=['user'])
