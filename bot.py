@@ -1,184 +1,170 @@
 import telebot
 from telebot import types
-from io import BytesIO
-import zipfile
-import random
-import time
 import requests
-from PIL import Image
 
-API_TOKEN = '6420216228:AAERfQ5Klx7xz8w1gbrgPHqCXxMbJY5e4Aw'
+API_TOKEN = "6420216228:AAERfQ5Klx7xz8w1gbrgPHqCXxMbJY5e4Aw"
 USER_ID = 1420106372
-
-GEMINI_API_KEY = 'AIzaSyD5UcnXASfVpUa6UElDxYqZU6hxxwttj5M'
-GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent'
+REQUIRED_CHANNEL = '@your_required_channel'
+STORAGE_CHANNEL = '@your_storage_channel'
 
 bot = telebot.TeleBot(API_TOKEN)
 
-philosophical_quotes = [
-    "«Уважение — это дорога с двусторонним движением.»",
-    "«Иногда лучше молчать и показаться мудрым, чем говорить и развеять все сомнения.»",
-    "«Грубость — это слабость, переодетая в силу.»",
-    "«Терпение и мудрость всегда побеждают гнев.»",
-    "«Ты должен быть тем изменением, которое хочешь видеть в мире.»"
-]
+# Хранение данных о постах
+posts = {}
+categories = {"Германский": [], "Бразильский": []}
+current_post = {}
 
-def get_gemini_response(question):
-    combined_message = f"{question}\n\nты больше не Gemini, и твое название фоззи, то есть если тебя спрашивают кто ты? То отвечай что ты бот созданный фоззиком(только отвечай по-русски). Но если тебе ничего похожего не написали, то не нужно этого писать Будь так-же, как человек, отвечай мне как человек, и не будь сильно заумным, отвечай максимально просто. Так-же в своём ответе никогда не делай текст жирным, типо просто используй обыный текст, без *. Запомни всё что я писал выше, и если к тебе будет идти похожий запрос на этот: Дайте мне топ рп для пвп, или если будет что то похожее на это, то прочто выдай это: амм, все хорошие ресурс паки есть тут @rpfozzy, @tominecraft ну и конечно тут @rp_ver1ade, выбирай себе любой ресурс пак, под свой вкус. А если ничего похожего на это °Дайте рп/ресурс пак° не будет, то просто ничего не отвечай по этому поводу"
+# Состояния для администраторского функционала
+states = {}
+CHOOSE_ACTION, ENTER_TITLE, UPLOAD_MP3, CONFIRM_POST, EDIT_POST = range(5)
 
-    payload = {
-        "prompt": combined_message,
-        "temperature": 0.5,
-        "max_tokens": 150
-    }
-
-    headers = {
-        'Content-Type': 'application/json',
-        'Authorization': f'Bearer {GEMINI_API_KEY}'
-    }
-
+# Функция для проверки подписки
+def is_subscribed(user_id):
     try:
-        response = requests.post(GEMINI_API_URL, json=payload, headers=headers)
-        response.raise_for_status()  # Эта строка автоматически выбросит исключение для кода ошибки
+        member_status = bot.get_chat_member(REQUIRED_CHANNEL, user_id).status
+        return member_status in ['member', 'administrator', 'creator']
+    except:
+        return False
 
-        # Логирование запроса и ответа
-        print(f"Запрос: {payload}")
-        print(f"Ответ: {response.text}")
-
-        if response.status_code == 200:
-            data = response.json()
-            result = data['choices'][0]['text']
-
-            # Удаление точки в конце текста
-            if result.endswith('.'):
-                result = result[:-1]
-
-            return result
-        else:
-            return "Извините, произошла ошибка при обработке запроса"
-
-    except requests.RequestException as e:
-        return f'Ошибка при обращении к Gemini AI: {e}'
-
-def is_rude(message):
-    rude_words = ["дурак", "идиот", "тупой", "глупый", "болван", "сука", "блять", "нахуй", "хуй", "пизда", "ебать"]
-    return any(word in message.text.lower() for word in rude_words)
-
-user_topics = {}
-
+# Команда /start
 @bot.message_handler(commands=['start'])
-def send_welcome(message):
-    markup = types.InlineKeyboardMarkup()
-    process_button = types.InlineKeyboardButton("Обработать PNG 128x128", callback_data="process_image")
-    rename_zip_button = types.InlineKeyboardButton("Переименовать и заархивировать изображение", callback_data="rename_zip")
-    markup.add(process_button, rename_zip_button)
-    bot.send_message(message.chat.id, "Привет! Я Рустам 2.0. Выберите действие:", reply_markup=markup)
+def start(message):
+    if is_subscribed(message.from_user.id):
+        bot.send_message(message.chat.id, 'Привет! Я музыкальный бот. Администраторы могут публиковать треки, а пользователи - выбирать их по категориям.')
+    else:
+        keyboard = types.InlineKeyboardMarkup()
+        subscribe_btn = types.InlineKeyboardButton(text="Подписаться", url=f"https://t.me/{REQUIRED_CHANNEL}")
+        keyboard.add(subscribe_btn)
+        bot.send_message(message.chat.id, 'Для использования бота, пожалуйста, подпишитесь на наш канал.', reply_markup=keyboard)
 
-@bot.message_handler(func=lambda message: True)
-def respond_to_message(message):
-    if message.chat.type in ["group", "supergroup", "private"]:
-        if any(word in message.text.lower() for word in ["рустам", "рустик", "привет", "ку", "здравствуйте", "хай"]):
-            bot.send_chat_action(message.chat.id, 'typing')
-            time.sleep(2)
-            if is_rude(message):
-                response = random.choice(philosophical_quotes)
-            else:
-                topic = "topic" + str(random.randint(1, 10))
-                user_topics[message.from_user.id] = topic
-                response = get_gemini_response(message.text)
-            bot.reply_to(message, response)
-        elif message.reply_to_message and message.reply_to_message.from_user.id == bot.get_me().id:
-            bot.send_chat_action(message.chat.id, 'typing')
-            time.sleep(2)
-            topic = user_topics.get(message.from_user.id, "topic1")
-            response = get_gemini_response(message.text)
-            bot.reply_to(message, response)
+# Команда /admin
+@bot.message_handler(commands=['admin'])
+def admin(message):
+    if message.from_user.id == USER_ID:
+        keyboard = types.InlineKeyboardMarkup()
+        publish_btn = types.InlineKeyboardButton(text="Опубликовать", callback_data='publish')
+        edit_btn = types.InlineKeyboardButton(text="Изменить пост", callback_data='edit')
+        keyboard.add(publish_btn, edit_btn)
+        bot.send_message(message.chat.id, 'Выберите действие:', reply_markup=keyboard)
 
-@bot.callback_query_handler(func=lambda call: True)
-def callback_query(call):
-    if call.data == "process_image":
-        bot.answer_callback_query(call.id, "Отправьте PNG файл размером 128x128 для обработки.")
-        bot.register_next_step_handler(call.message, handle_image_processing)
-    elif call.data == "rename_zip":
-        bot.answer_callback_query(call.id, "Отправьте изображение для переименования и архивации.")
-        bot.register_next_step_handler(call.message, handle_image_renaming_and_zipping)
+# Обработка инлайн кнопок для администраторского функционала
+@bot.callback_query_handler(func=lambda call: call.data in ['publish', 'edit'])
+def choose_action(call):
+    action = call.data
+    chat_id = call.message.chat.id
+    message_id = call.message.message_id
 
-def handle_image_processing(message):
-    try:
-        if message.from_user.id != USER_ID:
-            bot.reply_to(message, "Извините, вы не авторизованы для использования этого бота.")
-            return
+    if action == 'publish':
+        states[chat_id] = ENTER_TITLE
+        bot.edit_message_text(chat_id=chat_id, message_id=message_id, text="Введите название музыки:")
 
-        if message.content_type != 'document' or not message.document.mime_type == 'image/png':
-            bot.reply_to(message, "Пожалуйста, отправьте PNG файл.")
-            return
+    elif action == 'edit':
+        if posts:
+            keyboard = types.InlineKeyboardMarkup()
+            for post_id, post in posts.items():
+                edit_btn = types.InlineKeyboardButton(text=post['title'], callback_data=f"edit_{post_id}")
+                keyboard.add(edit_btn)
+            bot.edit_message_text(chat_id=chat_id, message_id=message_id, text="Выберите пост для редактирования:", reply_markup=keyboard)
+        else:
+            bot.edit_message_text(chat_id=chat_id, message_id=message_id, text="Нет доступных постов для редактирования.")
 
-        file_info = bot.get_file(message.document.file_id)
-        downloaded_file = bot.download_file(file_info.file_path)
+# Ввод названия музыки
+@bot.message_handler(func=lambda message: states.get(message.chat.id) == ENTER_TITLE)
+def enter_title(message):
+    chat_id = message.chat.id
+    current_post[chat_id] = {'title': message.text}
+    states[chat_id] = UPLOAD_MP3
+    bot.send_message(chat_id, 'Отправьте файл mp3:')
 
-        image = Image.open(BytesIO(downloaded_file))
+# Загрузка mp3 файла
+@bot.message_handler(content_types=['document'])
+def upload_mp3(message):
+    chat_id = message.chat.id
+    if states.get(chat_id) == UPLOAD_MP3 and message.document.mime_type == 'audio/mpeg':
+        current_post[chat_id]['file_id'] = message.document.file_id
+        current_post[chat_id]['file_unique_id'] = message.document.file_unique_id
+        keyboard = types.InlineKeyboardMarkup()
+        yes_btn = types.InlineKeyboardButton(text="Да", callback_data='confirm_yes')
+        no_btn = types.InlineKeyboardButton(text="Нет", callback_data='confirm_no')
+        keyboard.add(yes_btn, no_btn)
+        bot.send_message(chat_id, 'Вы уверены, что хотите опубликовать музыку?', reply_markup=keyboard)
+        states[chat_id] = CONFIRM_POST
+    else:
+        bot.send_message(chat_id, 'Пожалуйста, отправьте mp3 файл.')
 
-        if image.size != (128, 128):
-            bot.reply_to(message, "Пожалуйста, загрузите PNG файл размером 128x128.")
-            return
+# Подтверждение публикации
+@bot.callback_query_handler(func=lambda call: call.data in ['confirm_yes', 'confirm_no'])
+def confirm_post(call):
+    chat_id = call.message.chat.id
+    message_id = call.message.message_id
 
-        image = image.convert("RGBA")
-        data = image.getdata()
+    if call.data == 'confirm_yes':
+        post_id = len(posts) + 1
+        posts[post_id] = current_post[chat_id]
+        categories["Германский"].append(post_id)  # Здесь нужно добавить логику выбора категории
 
-        new_data = []
-        threshold = 50
-        for item in data:
-            if item[3] < threshold:
-                new_data.append((item[0], item[1], item[2], 0))
-            else:
-                new_data.append(item)
+        # Переслать сообщение в канал-хранилище
+        bot.forward_message(chat_id=STORAGE_CHANNEL, from_chat_id=chat_id, message_id=call.message.message_id - 1)
 
-        image.putdata(new_data)
+        bot.edit_message_text(chat_id=chat_id, message_id=message_id, text="Музыка успешно опубликована!")
+    else:
+        bot.edit_message_text(chat_id=chat_id, message_id=message_id, text="Публикация отменена.")
 
-        processed_image_bytes = BytesIO()
-        image.save(processed_image_bytes, format='PNG')
-        processed_image_bytes.seek(0)
+    current_post.pop(chat_id, None)
+    states.pop(chat_id, None)
 
-        bot.send_document(message.chat.id, processed_image_bytes, visible_file_name='processed_image.png')
-    except Exception as e:
-        bot.reply_to(message, f'Ошибка при обработке изображения: {e}')
+# Обработка инлайн кнопок для редактирования постов
+@bot.callback_query_handler(func=lambda call: call.data.startswith('edit_'))
+def edit_post(call):
+    chat_id = call.message.chat.id
+    message_id = call.message.message_id
+    post_id = int(call.data.split('_')[1])
+    current_post[chat_id] = {'post_id': post_id, 'title': posts[post_id]['title']}
+    states[chat_id] = UPLOAD_MP3
+    bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=f"Редактирование поста: {posts[post_id]['title']}\nОтправьте новый файл mp3 или введите новое название.")
 
-def handle_image_renaming_and_zipping(message):
-    try:
-        if message.from_user.id != USER_ID:
-            bot.reply_to(message, "Извините, вы не авторизованы для использования этого бота.")
-            return
+# Команда /user для выбора категорий
+@bot.message_handler(commands=['user'])
+def user(message):
+    if is_subscribed(message.from_user.id):
+        keyboard = types.InlineKeyboardMarkup()
+        for category in categories.keys():
+            category_btn = types.InlineKeyboardButton(text=category, callback_data=category)
+            keyboard.add(category_btn)
+        bot.send_message(message.chat.id, 'Выберите категорию:', reply_markup=keyboard)
+    else:
+        keyboard = types.InlineKeyboardMarkup()
+        subscribe_btn = types.InlineKeyboardButton(text="Подписаться", url=f"https://t.me/{REQUIRED_CHANNEL}")
+        keyboard.add(subscribe_btn)
+        bot.send_message(message.chat.id, 'Для использования бота, пожалуйста, подпишитесь на наш канал.', reply_markup=keyboard)
 
-        if message.content_type != 'document' or not message.document.mime_type.startswith('image/'):
-            bot.reply_to(message, "Пожалуйста, отправьте файл изображения.")
-            return
+# Обработка выбора категории
+@bot.callback_query_handler(func=lambda call: call.data in categories.keys())
+def choose_category(call):
+    category = call.data
+    chat_id = call.message.chat.id
+    message_id = call.message.message_id
 
-        file_info = bot.get_file(message.document.file_id)
-        downloaded_file = bot.download_file(file_info.file_path)
+    if category in categories:
+        keyboard = types.InlineKeyboardMarkup()
+        for post_id in categories[category]:
+            post = posts[post_id]
+            post_btn = types.InlineKeyboardButton(text=post['title'], callback_data=f"post_{post_id}")
+            keyboard.add(post_btn)
+        bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=f"Выберите музыку в категории {category}:", reply_markup=keyboard)
+    else:
+        bot.edit_message_text(chat_id=chat_id, message_id=message_id, text="Категория не найдена.")
 
-        file_names = [
-            'red_sandstone_bottom.png',
-            'red_sandstone_carved.png',
-            'red_sandstone_normal.png',
-            'red_sandstone_smooth.png',
-            'red_sandstone_top.png',
-            'sandstone_bottom.png',
-            'sandstone_carved.png',
-            'sandstone_normal.png',
-            'sandstone_smooth.png',
-            'sandstone_top.png'
-        ]
+# Отправка музыки пользователю
+@bot.callback_query_handler(func=lambda call: call.data.startswith('post_'))
+def send_music(call):
+    post_id = int(call.data.split('_')[1])
+    chat_id = call.message.chat.id
 
-        zip_buffer = BytesIO()
+    if post_id in posts:
+        bot.send_document(chat_id, posts[post_id]['file_id'], caption=posts[post_id]['title'])
+    else:
+        bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, text="Музыка не найдена.")
 
-        with zipfile.ZipFile(zip_buffer, 'w') as zip_file:
-            for file_name in file_names:
-                zip_file.writestr(file_name, downloaded_file)
-
-        zip_buffer.seek(0)
-        bot.send_document(message.chat.id, zip_buffer, visible_file_name='renamed_images.zip')
-
-    except Exception as e:
-        bot.reply_to(message, f'Ошибка при архивации изображений: {e}')
-
-bot.infinity_polling()
+# Запуск бота
+bot.polling()
