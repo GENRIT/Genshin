@@ -1,8 +1,9 @@
 import telebot
 from telebot import types
 import requests
+import time
 
-API_TOKEN = "6420216228:AAERfQ5Klx7xz8w1gbrgPHqCXxMbJY5e4Aw"
+API_TOKEN = "YOUR_API_TOKEN"
 USER_ID = 1420106372
 REQUIRED_CHANNEL = '@tominecraft'
 STORAGE_CHANNEL = '@trumpnext'
@@ -18,11 +19,16 @@ current_post = {}
 states = {}
 CHOOSE_ACTION, CHOOSE_GENRE, ENTER_TITLE, UPLOAD_FILE, CONFIRM_POST, EDIT_POST = range(6)
 
-# Функция для проверки подписки
+# Кэширование подписчиков для проверки подписки
+subscribed_users = {}
+
 def is_subscribed(user_id):
+    if user_id in subscribed_users:
+        return subscribed_users[user_id]
     try:
         member_status = bot.get_chat_member(REQUIRED_CHANNEL, user_id).status
-        return member_status in ['member', 'administrator', 'creator']
+        subscribed_users[user_id] = member_status in ['member', 'administrator', 'creator']
+        return subscribed_users[user_id]
     except:
         return False
 
@@ -50,7 +56,6 @@ def start(message):
 def choose_action(call):
     action = call.data
     chat_id = call.message.chat.id
-    message_id = call.message.message_id
 
     if action == 'publish':
         states[chat_id] = CHOOSE_GENRE
@@ -58,7 +63,7 @@ def choose_action(call):
         for category in categories.keys():
             genre_btn = types.InlineKeyboardButton(text=category, callback_data=f"genre_{category}")
             keyboard.add(genre_btn)
-        bot.edit_message_text(chat_id=chat_id, message_id=message_id, text="Выберите жанр для публикации:", reply_markup=keyboard)
+        bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, text="Выберите жанр для публикации:", reply_markup=keyboard)
 
     elif action == 'edit':
         if posts:
@@ -66,9 +71,9 @@ def choose_action(call):
             for post_id, post in posts.items():
                 edit_btn = types.InlineKeyboardButton(text=post['title'], callback_data=f"edit_{post_id}")
                 keyboard.add(edit_btn)
-            bot.edit_message_text(chat_id=chat_id, message_id=message_id, text="Выберите пост для редактирования:", reply_markup=keyboard)
+            bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, text="Выберите пост для редактирования:", reply_markup=keyboard)
         else:
-            bot.edit_message_text(chat_id=chat_id, message_id=message_id, text="Нет доступных постов для редактирования.")
+            bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, text="Нет доступных постов для редактирования.")
 
 # Обработка выбора жанра для публикации
 @bot.callback_query_handler(func=lambda call: call.data.startswith('genre_'))
@@ -116,7 +121,6 @@ def upload_file(message):
 @bot.callback_query_handler(func=lambda call: call.data in ['confirm_yes', 'confirm_no'])
 def confirm_post(call):
     chat_id = call.message.chat.id
-    message_id = call.message.message_id
 
     if call.data == 'confirm_yes':
         post_id = len(posts) + 1
@@ -124,9 +128,9 @@ def confirm_post(call):
         genre = current_post[chat_id]['genre']
         categories[genre].append(post_id)
 
-        bot.edit_message_text(chat_id=chat_id, message_id=message_id, text="Музыка успешно опубликована!")
+        bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, text="Музыка успешно опубликована!")
     else:
-        bot.edit_message_text(chat_id=chat_id, message_id=message_id, text="Публикация отменена.")
+        bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, text="Публикация отменена.")
 
     current_post.pop(chat_id, None)
     states.pop(chat_id, None)
@@ -135,11 +139,10 @@ def confirm_post(call):
 @bot.callback_query_handler(func=lambda call: call.data.startswith('edit_'))
 def edit_post(call):
     chat_id = call.message.chat.id
-    message_id = call.message.message_id
     post_id = int(call.data.split('_')[1])
     current_post[chat_id] = {'post_id': post_id, 'title': posts[post_id]['title']}
     states[chat_id] = UPLOAD_FILE
-    bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=f"Редактирование поста: {posts[post_id]['title']}\nОтправьте новый музыкальный файл или введите новое название.")
+    bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, text=f"Редактирование поста: {posts[post_id]['title']}\nОтправьте новый музыкальный файл или введите новое название.")
 
 # Команда /user для выбора категорий
 @bot.message_handler(commands=['user'])
@@ -161,19 +164,16 @@ def user(message):
 def choose_category(call):
     category = call.data
     chat_id = call.message.chat.id
-    message_id = call.message.message_id
 
     if category in categories:
-        keyboard = types.InlineKeyboardMarkup()
         posts_in_category = categories[category]
         show_posts(call, posts_in_category, 0)
     else:
-        bot.edit_message_text(chat_id=chat_id, message_id=message_id, text="Категория не найдена.")
+        bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, text="Категория не найдена.")
 
 # Функция для отображения постов с пагинацией
 def show_posts(call, posts_in_category, page):
     chat_id = call.message.chat.id
-    message_id = call.message.message_id
     items_per_page = 5
     total_pages = (len(posts_in_category) + items_per_page - 1) // items_per_page
     start = page * items_per_page
@@ -196,19 +196,12 @@ def show_posts(call, posts_in_category, page):
     back_btn = types.InlineKeyboardButton(text="Назад", callback_data="back_to_categories")
     keyboard.add(back_btn)
 
-    bot.edit_message_text(chat_id=chat_id, message_id=message_id, text="Выберите музыку:", reply_markup=keyboard)
+    bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, text="Выберите музыку:", reply_markup=keyboard)
 
 # Обработка кнопок пагинации и кнопки "назад"
 @bot.callback_query_handler(func=lambda call: call.data.startswith('prev_') or call.data.startswith('next_') or call.data == "back_to_categories")
 def handle_pagination(call):
-    chat_id = call.message.chat.id
-    message_id = call.message.message_id
-
-    if call.data.startswith('prev_'):
-        page = int(call.data.split('_')[1])
-        category = get_category_by_post_id(page)
-        show_posts(call, categories[category], page)
-    elif call.data.startswith('next_'):
+    if call.data.startswith('prev_') or call.data.startswith('next_'):
         page = int(call.data.split('_')[1])
         category = get_category_by_post_id(page)
         show_posts(call, categories[category], page)
@@ -217,7 +210,7 @@ def handle_pagination(call):
         for category in categories.keys():
             category_btn = types.InlineKeyboardButton(text=category, callback_data=category)
             keyboard.add(category_btn)
-        bot.edit_message_text(chat_id=chat_id, message_id=message_id, text='Выберите категорию:', reply_markup=keyboard)
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text='Выберите категорию:', reply_markup=keyboard)
 
 # Функция для получения категории по ID поста
 def get_category_by_post_id(post_id):
@@ -238,4 +231,4 @@ def send_music(call):
         bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, text="Музыка не найдена.")
 
 # Запуск бота
-bot.polling()
+bot.polling(none_stop=True)
