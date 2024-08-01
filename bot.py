@@ -30,22 +30,20 @@ def is_subscribed(user_id):
 @bot.message_handler(commands=['start'])
 def start(message):
     if is_subscribed(message.from_user.id):
-        bot.send_message(message.chat.id, 'Привет! Я музыкальный бот. Администраторы могут публиковать треки, а пользователи - выбирать их по категориям.')
+        keyboard = types.InlineKeyboardMarkup()
+        for category in categories.keys():
+            category_btn = types.InlineKeyboardButton(text=category, callback_data=category)
+            keyboard.add(category_btn)
+        if message.from_user.id == USER_ID:
+            publish_btn = types.InlineKeyboardButton(text="Опубликовать", callback_data='publish')
+            edit_btn = types.InlineKeyboardButton(text="Изменить пост", callback_data='edit')
+            keyboard.add(publish_btn, edit_btn)
+        bot.send_message(message.chat.id, 'Выберите жанр:', reply_markup=keyboard)
     else:
         keyboard = types.InlineKeyboardMarkup()
         subscribe_btn = types.InlineKeyboardButton(text="Подписаться", url=f"https://t.me/{REQUIRED_CHANNEL}")
         keyboard.add(subscribe_btn)
         bot.send_message(message.chat.id, 'Для использования бота, пожалуйста, подпишитесь на наш канал.', reply_markup=keyboard)
-
-# Команда /admin
-@bot.message_handler(commands=['admin'])
-def admin(message):
-    if message.from_user.id == USER_ID:
-        keyboard = types.InlineKeyboardMarkup()
-        publish_btn = types.InlineKeyboardButton(text="Опубликовать", callback_data='publish')
-        edit_btn = types.InlineKeyboardButton(text="Изменить пост", callback_data='edit')
-        keyboard.add(publish_btn, edit_btn)
-        bot.send_message(message.chat.id, 'Выберите действие:', reply_markup=keyboard)
 
 # Обработка инлайн кнопок для администраторского функционала
 @bot.callback_query_handler(func=lambda call: call.data in ['publish', 'edit'])
