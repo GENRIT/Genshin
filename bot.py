@@ -38,7 +38,7 @@ def start(message):
             publish_btn = types.InlineKeyboardButton(text="Опубликовать", callback_data='publish')
             edit_btn = types.InlineKeyboardButton(text="Изменить пост", callback_data='edit')
             keyboard.add(publish_btn, edit_btn)
-        bot.send_message(message.chat.id, 'Выберите жанр:', reply_markup=keyboard)
+        bot.send_photo(message.chat.id, "https://example.com/photo.jpg", caption='Выберите жанр:', reply_markup=keyboard)
     else:
         keyboard = types.InlineKeyboardMarkup()
         subscribe_btn = types.InlineKeyboardButton(text="Подписаться", url=f"https://t.me/{REQUIRED_CHANNEL}")
@@ -165,13 +165,66 @@ def choose_category(call):
 
     if category in categories:
         keyboard = types.InlineKeyboardMarkup()
-        for post_id in categories[category]:
-            post = posts[post_id]
-            post_btn = types.InlineKeyboardButton(text=post['title'], callback_data=f"post_{post_id}")
-            keyboard.add(post_btn)
-        bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=f"Выберите музыку в категории {category}:", reply_markup=keyboard)
+        posts_in_category = categories[category]
+        show_posts(call, posts_in_category, 0)
     else:
         bot.edit_message_text(chat_id=chat_id, message_id=message_id, text="Категория не найдена.")
+
+# Функция для отображения постов с пагинацией
+def show_posts(call, posts_in_category, page):
+    chat_id = call.message.chat.id
+    message_id = call.message.message_id
+    items_per_page = 5
+    total_pages = (len(posts_in_category) + items_per_page - 1) // items_per_page
+    start = page * items_per_page
+    end = start + items_per_page
+    page_posts = posts_in_category[start:end]
+
+    keyboard = types.InlineKeyboardMarkup()
+    for post_id in page_posts:
+        post = posts[post_id]
+        post_btn = types.InlineKeyboardButton(text=post['title'], callback_data=f"post_{post_id}")
+        keyboard.add(post_btn)
+
+    if page > 0:
+        prev_btn = types.InlineKeyboardButton(text="⬅️ Назад", callback_data=f"prev_{page - 1}")
+        keyboard.add(prev_btn)
+    if page < total_pages - 1:
+        next_btn = types.InlineKeyboardButton(text="Вперед ➡️", callback_data=f"next_{page + 1}")
+        keyboard.add(next_btn)
+
+    back_btn = types.InlineKeyboardButton(text="Назад", callback_data="back_to_categories")
+    keyboard.add(back_btn)
+
+    bot.edit_message_text(chat_id=chat_id, message_id=message_id, text="Выберите музыку:", reply_markup=keyboard)
+
+# Обработка кнопок пагинации и кнопки "назад"
+@bot.callback_query_handler(func=lambda call: call.data.startswith('prev_') or call.data.startswith('next_') or call.data == "back_to_categories")
+def handle_pagination(call):
+    chat_id = call.message.chat.id
+    message_id = call.message.message_id
+
+    if call.data.startswith('prev_'):
+        page = int(call.data.split('_')[1])
+        category = get_category_by_post_id(page)
+        show_posts(call, categories[category], page)
+    elif call.data.startswith('next_'):
+        page = int(call.data.split('_')[1])
+        category = get_category_by_post_id(page)
+        show_posts(call, categories[category], page)
+    elif call.data == "back_to_categories":
+        keyboard = types.InlineKeyboardMarkup()
+        for category in categories.keys():
+            category_btn = types.InlineKeyboardButton(text=category, callback_data=category)
+            keyboard.add(category_btn)
+        bot.edit_message_text(chat_id=chat_id, message_id=message_id, text='Выберите категорию:', reply_markup=keyboard)
+
+# Функция для получения категории по ID поста
+def get_category_by_post_id(post_id):
+    for category, post_ids in categories.items():
+        if post_id in post_ids:
+            return category
+    return None
 
 # Отправка музыки пользователю
 @bot.callback_query_handler(func=lambda call: call.data.startswith('post_'))
