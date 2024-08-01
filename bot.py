@@ -91,17 +91,23 @@ def enter_title(message):
 @bot.message_handler(content_types=['document'])
 def upload_mp3(message):
     chat_id = message.chat.id
-    if states.get(chat_id) == UPLOAD_MP3 and message.document.mime_type == 'audio/mpeg':
-        current_post[chat_id]['file_id'] = message.document.file_id
-        current_post[chat_id]['file_unique_id'] = message.document.file_unique_id
-        keyboard = types.InlineKeyboardMarkup()
-        yes_btn = types.InlineKeyboardButton(text="Да", callback_data='confirm_yes')
-        no_btn = types.InlineKeyboardButton(text="Нет", callback_data='confirm_no')
-        keyboard.add(yes_btn, no_btn)
-        bot.send_message(chat_id, 'Вы уверены, что хотите опубликовать музыку?', reply_markup=keyboard)
-        states[chat_id] = CONFIRM_POST
-    else:
-        bot.send_message(chat_id, 'Пожалуйста, отправьте mp3 файл.')
+    if states.get(chat_id) == UPLOAD_MP3:
+        if message.document.mime_type == 'audio/mpeg':
+            current_post[chat_id]['file_id'] = message.document.file_id
+            current_post[chat_id]['file_unique_id'] = message.document.file_unique_id
+
+            # Немедленная пересылка файла в канал-хранилище
+            bot.send_document(STORAGE_CHANNEL, message.document.file_id, caption=message.document.file_name)
+
+            # Подтверждение публикации
+            keyboard = types.InlineKeyboardMarkup()
+            yes_btn = types.InlineKeyboardButton(text="Да", callback_data='confirm_yes')
+            no_btn = types.InlineKeyboardButton(text="Нет", callback_data='confirm_no')
+            keyboard.add(yes_btn, no_btn)
+            bot.send_message(chat_id, 'Вы уверены, что хотите опубликовать музыку?', reply_markup=keyboard)
+            states[chat_id] = CONFIRM_POST
+        else:
+            bot.send_message(chat_id, 'Пожалуйста, отправьте mp3 файл.')
 
 # Подтверждение публикации
 @bot.callback_query_handler(func=lambda call: call.data in ['confirm_yes', 'confirm_no'])
@@ -114,9 +120,6 @@ def confirm_post(call):
         posts[post_id] = current_post[chat_id]
         genre = current_post[chat_id]['genre']
         categories[genre].append(post_id)
-
-        # Отправка сообщения в канал-хранилище с новым mp3 файлом
-        bot.send_document(STORAGE_CHANNEL, posts[post_id]['file_id'], caption=posts[post_id]['title'])
 
         bot.edit_message_text(chat_id=chat_id, message_id=message_id, text="Музыка успешно опубликована!")
     else:
