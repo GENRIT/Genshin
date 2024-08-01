@@ -16,7 +16,7 @@ current_post = {}
 
 # Состояния для администраторского функционала
 states = {}
-CHOOSE_ACTION, ENTER_TITLE, UPLOAD_MP3, CONFIRM_POST, EDIT_POST = range(5)
+CHOOSE_ACTION, CHOOSE_GENRE, ENTER_TITLE, UPLOAD_MP3, CONFIRM_POST, EDIT_POST = range(6)
 
 # Функция для проверки подписки
 def is_subscribed(user_id):
@@ -53,8 +53,12 @@ def choose_action(call):
     message_id = call.message.message_id
 
     if action == 'publish':
-        states[chat_id] = ENTER_TITLE
-        bot.edit_message_text(chat_id=chat_id, message_id=message_id, text="Введите название музыки:")
+        states[chat_id] = CHOOSE_GENRE
+        keyboard = types.InlineKeyboardMarkup()
+        for category in categories.keys():
+            genre_btn = types.InlineKeyboardButton(text=category, callback_data=f"genre_{category}")
+            keyboard.add(genre_btn)
+        bot.edit_message_text(chat_id=chat_id, message_id=message_id, text="Выберите жанр для публикации:", reply_markup=keyboard)
 
     elif action == 'edit':
         if posts:
@@ -66,11 +70,20 @@ def choose_action(call):
         else:
             bot.edit_message_text(chat_id=chat_id, message_id=message_id, text="Нет доступных постов для редактирования.")
 
+# Обработка выбора жанра для публикации
+@bot.callback_query_handler(func=lambda call: call.data.startswith('genre_'))
+def choose_genre(call):
+    chat_id = call.message.chat.id
+    genre = call.data.split('_')[1]
+    current_post[chat_id] = {'genre': genre}
+    states[chat_id] = ENTER_TITLE
+    bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, text=f"Жанр выбран: {genre}. Введите название музыки:")
+
 # Ввод названия музыки
 @bot.message_handler(func=lambda message: states.get(message.chat.id) == ENTER_TITLE)
 def enter_title(message):
     chat_id = message.chat.id
-    current_post[chat_id] = {'title': message.text}
+    current_post[chat_id]['title'] = message.text
     states[chat_id] = UPLOAD_MP3
     bot.send_message(chat_id, 'Отправьте файл mp3:')
 
@@ -99,7 +112,8 @@ def confirm_post(call):
     if call.data == 'confirm_yes':
         post_id = len(posts) + 1
         posts[post_id] = current_post[chat_id]
-        categories["Германский"].append(post_id)  # Здесь нужно добавить логику выбора категории
+        genre = current_post[chat_id]['genre']
+        categories[genre].append(post_id)
 
         # Переслать сообщение в канал-хранилище
         bot.forward_message(chat_id=STORAGE_CHANNEL, from_chat_id=chat_id, message_id=call.message.message_id - 1)
