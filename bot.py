@@ -5,13 +5,13 @@ from telebot import types
 
 # Логирование
 logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelеnщzms)s',
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
 
 # Конфигурация API
 API_KEY = "AIzaSyD5UcnXASfVpUa6UElDxYqZU6hxxwttj5M"
-API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={API_KEY}"
+API_URL = f"https://generativelanguage.googleapis.com/v1beta2/models/gemini-pro:generateText?key={API_KEY}"
 
 # Настройка бота
 TOKEN = "7246280212:AAEhmuaeyEjo0fO10n1s0PUJo0da2WakG58"
@@ -26,7 +26,7 @@ def generate_response(user_message):
         "Также если будут писать по рекламе в Telegram @tominecraft, или на сайте OxyMod (Oxymod.netlify.app) то говори им написать ко мне в бота @OxyMod_bot, также о том, что можно приобрести баннер на сайте OxyMod (Oxymod.netlify.app). "
         "Пиши без звёздочек. Вопрос: {user_message}"
     ).format(user_message=user_message)
-    
+
     payload = {
         "prompt": {"text": prompt_text},
         "temperature": 0.7,
