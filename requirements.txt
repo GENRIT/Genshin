@@ -1,1 +1,6 @@
 pyTelegramBotAPI
+requests
+urllib3
+idna
+charset-normalizer
+certifi
