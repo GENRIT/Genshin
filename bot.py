@@ -3,7 +3,7 @@ pip.main(['install', 'pytelegrambotapi'])
 import telebot
 import requests
 
-API_KEY = '6487715421:AAG4WeqsWG_8FkxQbbbZbHDqeDadF-0Ir1g'
+API_KEY = '7246280212:AAEhmuaeyEjo0fO10n1s0PUJo0da2WakG58'
 GEMINI_API_KEY = 'AIzaSyDlIJZ3gAae5S_owNcETNahJvLYwPpFEwA'
 GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent'
 
