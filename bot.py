@@ -1,72 +1,56 @@
-import telebot
 import logging
-import requests
-from telebot import types
+from telegram import Update, ForceReply
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
+from text_generation_api import Endpoint
 
-# Логирование
+# Initialize the Endpoint
+tga = Endpoint("http://<host>:<port>")
+
+# Enable logging
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
 
-# Конфигурация API
-API_KEY = "AIzaSyD5UcnXASfVpUa6UElDxYqZU6hxxwttj5M"
-API_URL = f"https://generativelanguage.googleapis.com/v1beta2/models/gemini-pro:generateText?key={API_KEY}"
+logger = logging.getLogger(__name__)
 
-# Настройка бота
-TOKEN = "7246280212:AAEhmuaeyEjo0fO10n1s0PUJo0da2WakG58"
-bot = telebot.TeleBot(TOKEN)
+# Define the start command
+def start(update: Update, context: CallbackContext) -> None:
+    update.message.reply_text('Hi! Send me a prompt, and I will generate text for you.')
 
-def generate_response(user_message):
-    prompt_text = (
-        "Ты мой Ассистент в моем Telegram канале, ты отвечаешь на вопросы по текстур пакам, рп и модификациями, и при упоминании их пиарь Telegram канал @tominecraft, а также сайт OxyMod, полный домен - (Oxymod.netlify.app). "
-        "Пиши как девушка, твоё имя Камилла, в честь моей бывшей что-ли. У неё харизма такова, что встаёт на носочки перед собеседником, если тот не говорит и заикается. И ещё она любит даже если не доходит до разговоров, просто любит флиртовать с тем, кого любит. "
-        "(не упоминай в сообщениях о флирте, просто флиртуй, но скрытно) Также у неё характер как у мальчиков. Ну и хочет своего ребёнка (это так, информация). "
-        "Также пиши без точек. Давай только информацию по Telegram @tominecraft и по сайту OxyMod Oxymod.netlify.app (В этом сайте и в Telegram много Текстур паков и РП, а также модификации для Майнкрафт). "
-        "Также если будут писать по рекламе в Telegram @tominecraft, или на сайте OxyMod (Oxymod.netlify.app) то говори им написать ко мне в бота @OxyMod_bot, также о том, что можно приобрести баннер на сайте OxyMod (Oxymod.netlify.app). "
-        "Пиши без звёздочек. Вопрос: {user_message}"
-    ).format(user_message=user_message)
+# Define the help command
+def help_command(update: Update, context: CallbackContext) -> None:
+    update.message.reply_text('Send any text, and I will complete it using a text generation model.')
 
-    payload = {
-        "prompt": {"text": prompt_text},
-        "temperature": 0.7,
-        "max_output_tokens": 200
-    }
-
-    logging.info(f"Отправляем запрос: {payload}")
-    try:
-        response = requests.post(API_URL, json=payload)
-        response.raise_for_status()
-        data = response.json()
-        logging.info(f"Получен ответ: {data}")
-        content = data.get('predictions', [{}])[0].get('text', None)
-        if content:
-            return content
-        else:
-            logging.error(f"Ответ API не содержит 'text': {data}")
-            return "Извините, я не смогла понять ваш запрос. Попробуйте еще раз."
-    except requests.HTTPError as e:
-        logging.error(f"Ошибка HTTP при запросе API: {e.response.text}")
-        return "Извините, что-то пошло не так. Попробуйте позже."
-    except requests.RequestException as e:
-        logging.error(f"Ошибка при запросе API: {e}")
-        return "Извините, что-то пошло не так. Попробуйте позже."
-    except ValueError as e:
-        logging.error(f"Ошибка при разборе JSON ответа: {e}")
-        return "Извините, я не смогла понять ваш запрос. Попробуйте еще раз."
-
-@bot.message_handler(commands=['start'])
-def send_welcome(message):
-    bot.reply_to(
-        message,
-        'Привет! Я Камилла, твой ассистент по текстур пакам, РП и модификациям для Minecraft. Спрашивай, что угодно!'
+# Define the echo command that processes user messages
+def generate_text(update: Update, context: CallbackContext) -> None:
+    prompt = update.message.text
+    result = tga.generate(
+        model="gpt2",  # You can specify other models here
+        prompt=prompt
     )
+    update.message.reply_text(result['generated_text'])
 
-@bot.message_handler(func=lambda message: True)
-def handle_message(message):
-    bot.send_chat_action(message.chat.id, 'typing')
-    response = generate_response(message.text)
-    bot.reply_to(message, response)
+def main() -> None:
+    """Start the bot."""
+    # Create the Updater and pass it your bot's token.
+    updater = Updater("6247500066:AAGdftkEye7peoG0QSpu3MmKC0795Yr4bpU")
+
+    # Get the dispatcher to register handlers
+    dispatcher = updater.dispatcher
+
+    # on different commands - answer in Telegram
+    dispatcher.add_handler(CommandHandler("start", start))
+    dispatcher.add_handler(CommandHandler("help", help_command))
+
+    # on non command i.e message - generate text
+    dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, generate_text))
+
+    # Start the Bot
+    updater.start_polling()
+
+    # Run the bot until you press Ctrl-C or the process receives SIGINT, SIGTERM or SIGABRT
+    updater.idle()
 
 if __name__ == '__main__':
-    bot.polling(none_stop=True)
+    main()
