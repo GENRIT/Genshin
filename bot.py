@@ -2,6 +2,7 @@ import telebot
 import logging
 import requests
 from telebot import types
+import os
 
 # Логирование
 logging.basicConfig(
@@ -10,11 +11,11 @@ logging.basicConfig(
 )
 
 # Конфигурация API
-API_KEY = "AIzaSyD5UcnXASfVpUa6UElDxYqZU6hxxwttj5M"
+API_KEY = os.getenv("GEMINI_API_KEY")
 API_URL = f"https://generativelanguage.googleapis.com/v1beta2/models/gemini-pro:generateText?key={API_KEY}"
 
 # Настройка бота
-TOKEN = "7246280212:AAEhmuaeyEjo0fO10n1s0PUJo0da2WakG58"
+TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 bot = telebot.TeleBot(TOKEN)
 
 def generate_response(user_message):
@@ -68,5 +69,5 @@ def handle_message(message):
     response = generate_response(message.text)
     bot.reply_to(message, response)
 
-if name == 'main':
+if __name__ == '__main__':
     bot.polling(none_stop=True)
