@@ -11,11 +11,11 @@ logging.basicConfig(
 )
 
 # Конфигурация API
-API_KEY = os.getenv("GEMINI_API_KEY")
+API_KEY = os.getenv("AIzaSyD5UcnXASfVpUa6UElDxYqZU6hxxwttj5M")
 API_URL = f"https://generativelanguage.googleapis.com/v1beta2/models/gemini-pro:generateText?key={API_KEY}"
 
 # Настройка бота
-TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+TOKEN = os.getenv("7246280212:AAEhmuaeyEjo0fO10n1s0PUJo0da2WakG58")
 bot = telebot.TeleBot(TOKEN)
 
 def generate_response(user_message):
