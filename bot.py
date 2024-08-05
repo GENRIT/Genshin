@@ -10,7 +10,7 @@ GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini
 bot = telebot.TeleBot(API_KEY)
 
 # Возможные вариации имени
-name_variations = ["камилла", "камил", "кам"]
+name_variations = ["камилла", "камил", "камилл"]
 
 # ID пользователей и их специальные сообщения
 special_users = {
