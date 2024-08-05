@@ -4,7 +4,7 @@ import telebot
 import requests
 
 API_KEY = '7246280212:AAEhmuaeyEjo0fO10n1s0PUJo0da2WakG58'
-GEMINI_API_KEY = 'AIzaSyDlIJZ3gAae5S_owNcETNahJvLYwPpFEwA'
+GEMINI_API_KEY = 'AIzaSyD5UcnXASfVpUa6UElDxYqZU6hxxwttj5M'
 GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent'
 
 bot = telebot.TeleBot(API_KEY)
