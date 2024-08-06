@@ -44,7 +44,7 @@ def handle_message(message):
     user_text = message.text.lower()
     user_id = message.from_user.id
 
-    bot.send_chat_action(message.chat.id, 'recording')  # Показываем статус "печатает"
+    bot.send_chat_action(message.chat.id, 'typing')  # Показываем статус "печатает"
 
     if user_id in special_users:
         response = get_gemini_response_special(user_text, special_users[user_id])
