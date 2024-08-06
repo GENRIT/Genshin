@@ -31,12 +31,12 @@ def handle_message(message):
     user_id = message.from_user.id
 
     bot.send_chat_action(message.chat.id, 'typing')  # Показываем статус "печатает"
-    
+
     if user_id in special_users:
         response = get_gemini_response_special(user_text, special_users[user_id])
     else:
         response = get_gemini_response(user_text)
-    
+
     bot.reply_to(message, response)
 
 def get_gemini_response(question):
