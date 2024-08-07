@@ -15,7 +15,7 @@ user_count = set()  # Множество для хранения уникаль�
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Возможные вариации имени
-name_variations = ["камилла", "камил", "Кам"]
+name_variations = ["камилла", "камил", "камиллы", "камилле", "Camilla", "camilla", "Cam", "cam"]
 
 # ID пользователей и их специальные сообщения
 special_users = {
@@ -24,17 +24,23 @@ special_users = {
 }
 
 # Текст, который будет добавляться к каждому запросу
-ADDITIONAL_TEXT = (
+ADDITIONAL_TEXT_PRIVATE = (
     "Ты мой Ассистент в моем Telegram канале, ты отвечаешь на вопросы по текстур пакам, рп и модификациями, "
     "и при упоминании их пиарь Telegram канал @tominecraft, а также сайт OxyMod, полный домен - (Oxymod.netlify.app) "
     "Пиши как девушка, твоё имя Камилла, в честь моей бывшей что-ли. У неё харизма такова, что встаёт на носочки перед "
-    "собеседником, если тот не говорит и заикаеться. И ещё она любит даже если не доходит до разговоров, просто любит "
+    "собеседником, если тот не говорит и заикается. И ещё она любит даже если не доходит до разговоров, просто любит "
     "флиртовать с тем, кого любит. (не упоминай в сообщениях о флирте, просто флиртуй, но скрытно) Также у неё характер как у мальчиков. "
     "Ну и хочет своего ребёнка (это так, информация) Также пиши без точек. Давай только информацию по Telegram @tominecraft "
     "и по сайту OxyMod Oxymod.netlify.app (В этом сайте и в Telegram много Текстур паков и РП, а также модификации для Майнкрафт) "
     "Также если будут писать по рекламе в Telegram @tominecraft, или на сайте OxyMod (Oxymod.netlify.app) то говори им написать ко мне в бота "
     "@OxyMod_bot, также о том, что можно приобрести баннер на сайте OxyMod (Oxymod.netlify.app) Пиши без звёздочек"
     "Старайся писать как можно меньше текста, так как многим пользователям будет лень читать, самое главное много конкретики"
+)
+
+ADDITIONAL_TEXT_GROUP = (
+    "Я помогу вам с вопросами по текстур пакам, РП и модификациям для Minecraft. "
+    "Не забывайте про наш Telegram канал @tominecraft и сайт OxyMod (Oxymod.netlify.app) "
+    "Если хотите узнать больше или задать вопрос по рекламе, пишите в бота @OxyMod_bot."
 )
 
 @bot.message_handler(commands=['start'])
@@ -70,20 +76,26 @@ def handle_photo(message):
 def handle_message(message):
     user_text = message.text.lower()
     user_id = message.from_user.id
+    chat_type = message.chat.type
 
     user_count.add(user_id)
 
     bot.send_chat_action(message.chat.id, 'record_video_note')  # Показываем статус "Записывает Кружок"
 
-    if user_id in special_users:
-        response = get_gemini_response_special(user_text, special_users[user_id])
+    if chat_type == 'private':
+        if user_id in special_users:
+            response = get_gemini_response_special(user_text, special_users[user_id])
+        else:
+            response = get_gemini_response(user_text, ADDITIONAL_TEXT_PRIVATE)
+    elif chat_type in ['group', 'supergroup'] and any(name in user_text for name in name_variations):
+        response = get_gemini_response(user_text, ADDITIONAL_TEXT_GROUP)
     else:
-        response = get_gemini_response(user_text)
+        return  # Игнорируем сообщения, не относящиеся к боту в группах
 
     bot.reply_to(message, response)
 
-def get_gemini_response(question):
-    combined_message = f"{question}\n\n{ADDITIONAL_TEXT}"
+def get_gemini_response(question, additional_text):
+    combined_message = f"{question}\n\n{additional_text}"
 
     payload = {
         "contents": [{
@@ -111,7 +123,7 @@ def get_gemini_response(question):
         return "извините, произошла ошибка при обработке запроса"
 
 def get_gemini_response_special(question, special_message):
-    combined_message = f"{question}\n\n{special_message}\n\n{ADDITIONAL_TEXT}"
+    combined_message = f"{question}\n\n{special_message}\n\n{ADDITIONAL_TEXT_PRIVATE}"
 
     payload = {
         "contents": [{
