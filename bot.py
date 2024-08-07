@@ -9,6 +9,7 @@ GEMINI_API_KEY = 'AIzaSyD5UcnXASfVpUa6UElDxYqZU6hxxwttj5M'
 GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent'
 
 bot = telebot.TeleBot(API_KEY)
+user_count = set()  # Множество для хранения уникальных ID пользователей
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -38,10 +39,16 @@ ADDITIONAL_TEXT = (
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
+    user_count.add(message.from_user.id)
     bot.reply_to(message, "Привет! Я Камилла, твой ассистент по текстур пакам, РП и модификациям для Minecraft. Спрашивай, что угодно!")
+
+@bot.message_handler(commands=['stats'])
+def send_stats(message):
+    bot.reply_to(message, f"Количество уникальных пользователей: {len(user_count)}")
 
 @bot.message_handler(content_types=['photo'])
 def handle_photo(message):
+    user_count.add(message.from_user.id)
     file_id = message.photo[-1].file_id
     file_info = bot.get_file(file_id)
     downloaded_file = bot.download_file(file_info.file_path)
@@ -64,7 +71,9 @@ def handle_message(message):
     user_text = message.text.lower()
     user_id = message.from_user.id
 
-    bot.send_chat_action(message.chat.id, 'typing')  # Показываем статус "печатает"
+    user_count.add(user_id)
+
+    bot.send_chat_action(message.chat.id, 'record_video_note')  # Показываем статус "Записывает Кружок"
 
     if user_id in special_users:
         response = get_gemini_response_special(user_text, special_users[user_id])
