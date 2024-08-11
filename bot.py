@@ -53,7 +53,7 @@ ADDITIONAL_TEXT_GROUP = (
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     user_count.add(message.from_user.id)
-    bot.reply_to(message, "Привет! Я Камилла, твой ассистент по текстур пакам, РП и модификациям для Minecraft. Спрашивай, что угодно!")
+    bot.reply_to(message, "Привет {name}! Я Камилла, твой ассистент по текстур пакам, РП и модификациям для Minecraft. Спрашивай, что угодно!")
 
 @bot.message_handler(commands=['stats'])
 def send_stats(message):
