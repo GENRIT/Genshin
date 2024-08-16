@@ -3,6 +3,7 @@ import requests
 import logging
 import time
 import os
+from collections import defaultdict
 
 API_KEY = '7246280212:AAGOvDby43WxeGbcO9eLMYZ33UtjMp9TSZo'
 GEMINI_API_KEY = 'AIzaSyD5UcnXASfVpUa6UElDxYqZU6hxxwttj5M'
@@ -10,6 +11,8 @@ GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini
 
 bot = telebot.TeleBot(API_KEY)
 user_count = set()  # Множество для хранения уникальных ID пользователей
+user_request_count = defaultdict(int)  # Счетчик запросов для каждого пользователя
+request_limit = 5  # Лимит запросов до необходимости просмотра рекламы
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -62,6 +65,11 @@ def send_stats(message):
 @bot.message_handler(content_types=['photo'])
 def handle_photo(message):
     user_count.add(message.from_user.id)
+
+    if user_request_count[message.from_user.id] >= request_limit:
+        bot.reply_to(message, "Чтобы продолжить, посмотрите рекламу в нашем приложении в течение 30 секунд.")
+        return
+
     file_id = message.photo[-1].file_id
     file_info = bot.get_file(file_id)
     downloaded_file = bot.download_file(file_info.file_path)
@@ -78,16 +86,22 @@ def handle_photo(message):
     os.remove(image_path)
 
     bot.reply_to(message, response)
+    user_request_count[message.from_user.id] += 1  # Увеличиваем счетчик запросов
 
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
-    user_text = message.text.lower()
     user_id = message.from_user.id
     chat_type = message.chat.type
 
     user_count.add(user_id)
 
+    if user_request_count[user_id] >= request_limit:
+        bot.reply_to(message, "Чтобы продолжить, посмотрите рекламу в нашем приложении в течение 30 секунд.")
+        return
+
     bot.send_chat_action(message.chat.id, 'record_video_note')  # Показываем статус "Записывает Кружок"
+
+    user_text = message.text.lower()
 
     if chat_type == 'private':
         if user_id in special_users:
@@ -100,6 +114,7 @@ def handle_message(message):
         return  # Игнорируем сообщения, не относящиеся к боту в группах
 
     bot.reply_to(message, response)
+    user_request_count[user_id] += 1  # Увеличиваем счетчик запросов
 
 def get_gemini_response(question, additional_text):
     combined_message = f"{question}\n\n{additional_text}"
