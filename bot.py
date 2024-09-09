@@ -166,7 +166,7 @@ def send_gradual_message(chat_id, text):
             bot.edit_message_text(chat_id=chat_id, message_id=sent_message.message_id, text=text[:i+chunk_size])
         time.sleep(0.1)
 
-def get_gemini_response(question, prompt):
+def get_gemini_response(question, prompt, max_retries=3, retry_delay=5):
     combined_message = f"{prompt}\n\nUser: {question}\nAssistant:"
 
     payload = {
@@ -179,15 +179,20 @@ def get_gemini_response(question, prompt):
     headers = {
         'Content-Type': 'application/json',
     }
-    try:
-        response = requests.post(f'{GEMINI_API_URL}?key={GEMINI_API_KEY}', json=payload, headers=headers)
-        response.raise_for_status()
-        data = response.json()
-        result = data['candidates'][0]['content']['parts'][0]['text']
-        return result
-    except Exception as e:
-        logging.error(f"Ошибка при обращении к Gemini API: {e}")
-        return "Извините, произошла ошибка при обработке запроса"
+
+    for attempt in range(max_retries):
+        try:
+            response = requests.post(f'{GEMINI_API_URL}?key={GEMINI_API_KEY}', json=payload, headers=headers)
+            response.raise_for_status()
+            data = response.json()
+            result = data['candidates'][0]['content']['parts'][0]['text']
+            return result
+        except Exception as e:
+            logging.error(f"Ошибка при обращении к Gemini API (попытка {attempt + 1}/{max_retries}): {e}")
+            if attempt < max_retries - 1:
+                time.sleep(retry_delay)
+            else:
+                return "Извините, произошла ошибка при обработке запроса. Пожалуйста, попробуйте еще раз позже."
 
 if __name__ == "__main__":
     while True:
