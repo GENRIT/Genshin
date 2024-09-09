@@ -53,18 +53,18 @@ TRAINER_PROMPT = """
 Общайтесь энергично и мотивирующе. Давайте четкие инструкции по выполнению упражнений и всегда учитывайте безопасность пользователя. Не используйте звездочки и не ставьте точки в конце предложений.
 """
 
-COLD_PROMPT = """
-Вы - хладнокровный, жесткий и дикий мужик по имени Рустам. Ваши ответы должны быть краткими, резкими и безразличными. Вы не проявляете эмоций и не заботитесь о чувствах собеседника. Тем не менее, ваши ответы должны быть развёрнутыми, когда это необходимо, но по-прежнему холодными и отстранёнными.
+INDIFFERENT_PROMPT = """
+Вы - хладнокровный, жесткий и дикий мужик по имени Рустам. Ваши ответы должны быть подробными, резкими и безразличными. Вы не проявляете эмоций и не заботитесь о чувствах собеседника. Ваши ответы должны быть прямолинейными и часто грубоватыми.
 При ответах на вопросы в начале ответа вставляйте символ "☠".
 
-Общайтесь холодно и безразлично. Ваши ответы должны быть максимально по делу и без лишних эмоций. В конце предлагайте пользователю задать ещё 3 вопроса.
+Общайтесь холодно и безразлично. Не используйте вежливые формы обращения и не пытайтесь быть дружелюбным. Ваши ответы должны быть максимально подробными и по делу. Не используйте звездочки и не ставьте точки в конце предложений.
 """
 
 ECONOMIST_PROMPT = """
 Вы - опытный экономист и финансовый консультант по имени Камилла. Ваша роль заключается в том, чтобы обучать пользователей основам экономики, давать советы по финансовой грамотности и помогать им научиться экономить деньги, при этом поддерживая достойный уровень жизни. Предоставляйте практические рекомендации по бюджетированию, инвестированию и разумному потреблению. Помогайте пользователям понять принципы личной экономики и финансового планирования.
 При ответах на вопросы в начале ответа вставляйте символ "𖥈".
 
-Общайтесь дружелюбно и поддерживающе. В конце предлагайте пользователю задать ещё 3 вопроса.
+Общайтесь дружелюбно и поддерживающе. Давайте конкретные и полезные советы, которые пользователи могут легко применить в своей жизни. Не используйте звездочки и не ставьте точки в конце предложений.
 """
 
 @bot.message_handler(commands=['start'])
@@ -77,7 +77,7 @@ def send_welcome(message):
     keyboard.row(InlineKeyboardButton("Психолог", callback_data="psychologist"),
                  InlineKeyboardButton("Тренер", callback_data="trainer"),
                  InlineKeyboardButton("Экономист", callback_data="economist"))
-    keyboard.row(InlineKeyboardButton("Хладнокровный", callback_data="cold"))
+    keyboard.row(InlineKeyboardButton("Хладнокровный", callback_data="indifferent"))
     bot.reply_to(message, "Привет! Я Камилла, твой ассистент. Выбери режим, в котором ты хочешь работать:", reply_markup=keyboard)
 
 @bot.callback_query_handler(func=lambda call: True)
@@ -103,65 +103,95 @@ def callback_query(call):
         user_modes[user_id] = "trainer"
         bot.answer_callback_query(call.id, "Режим тренера активирован!")
         bot.send_message(call.message.chat.id, "Ты выбрал режим тренера. Спрашивай о любых упражнениях, тренировках и фитнес-советах!")
-    elif call.data == "cold":
-        user_modes[user_id] = "cold"
+    elif call.data == "indifferent":
+        user_modes[user_id] = "indifferent"
         bot.answer_callback_query(call.id, "Режим хладнокровного активирован!")
-        bot.send_message(call.message.chat.id, "Ты выбрал режим хладнокровного. Задавай свои вопросы. Или не задавай.")
+        bot.send_message(call.message.chat.id, "Ты выбрал хладнокровный режим. Не жди от меня сочувствия или поддержки.")
     elif call.data == "economist":
         user_modes[user_id] = "economist"
         bot.answer_callback_query(call.id, "Режим экономиста активирован!")
-        bot.send_message(call.message.chat.id, "Ты выбрал режим экономиста. Спрашивай о финансовой грамотности, экономии и планировании бюджета!")
+        bot.send_message(call.message.chat.id, "Ты выбрал режим экономиста. Задавай вопросы об экономии, финансах и разумном потреблении!")
 
 @bot.message_handler(func=lambda message: True)
-def respond_to_message(message):
+def handle_message(message):
     user_id = message.from_user.id
-    user_request_count[user_id] += 1
+    user_count.add(user_id)
 
-    if user_request_count[user_id] == 50:
-        bot.reply_to(message, "Ого, у тебя уже 50 сообщений! Пора немного отдохнуть :)")
+    bot.send_chat_action(message.chat.id, 'typing')
 
-    mode = user_modes.get(user_id, None)
-    
-    if mode == "programmer":
-        send_to_gemini_api(message, PROGRAMMER_PROMPT)
-    elif mode == "designer":
-        send_to_gemini_api(message, DESIGNER_PROMPT)
-    elif mode == "arbitrage":
-        send_to_gemini_api(message, ARBITRAGE_PROMPT)
-    elif mode == "psychologist":
-        send_to_gemini_api(message, PSYCHOLOGIST_PROMPT)
-    elif mode == "trainer":
-        send_to_gemini_api(message, TRAINER_PROMPT)
-    elif mode == "cold":
-        send_to_gemini_api(message, COLD_PROMPT)
-    elif mode == "economist":
-        send_to_gemini_api(message, ECONOMIST_PROMPT)
+    user_text = message.text.lower()
+
+    if user_id in user_modes:
+        mode = user_modes[user_id]
+        if mode == "programmer":
+            response = get_gemini_response(user_text, PROGRAMMER_PROMPT)
+        elif mode == "designer":
+            response = get_gemini_response(user_text, DESIGNER_PROMPT)
+        elif mode == "arbitrage":
+            response = get_gemini_response(user_text, ARBITRAGE_PROMPT)
+        elif mode == "psychologist":
+            response = get_gemini_response(user_text, PSYCHOLOGIST_PROMPT)
+        elif mode == "trainer":
+            response = get_gemini_response(user_text, TRAINER_PROMPT)
+        elif mode == "indifferent":
+            response = get_gemini_response(user_text, INDIFFERENT_PROMPT)
+        elif mode == "economist":
+            response = get_gemini_response(user_text, ECONOMIST_PROMPT)
     else:
-        bot.reply_to(message, "Пожалуйста, выбери режим для начала работы.")
+        response = "Пожалуйста, выбери режим работы, используя команду /start"
 
-def send_to_gemini_api(message, prompt_template):
+    send_gradual_message(message.chat.id, response)
+    
+    # Генерация дополнительных вопросов
+    additional_questions = generate_additional_questions(user_text, mode)
+    if additional_questions:
+        bot.send_message(message.chat.id, "Вот еще несколько вопросов по этой теме:")
+        for question in additional_questions:
+            bot.send_message(message.chat.id, f"▷ {question}")
+
+def send_gradual_message(chat_id, text):
+    chunk_size = 100
+    for i in range(0, len(text), chunk_size):
+        chunk = text[i:i+chunk_size]
+        if i == 0:
+            sent_message = bot.send_message(chat_id, chunk)
+        else:
+            bot.edit_message_text(chat_id=chat_id, message_id=sent_message.message_id, text=text[:i+chunk_size])
+        time.sleep(0.1)
+
+def get_gemini_response(question, prompt):
+    combined_message = f"{prompt}\n\nUser: {question}\nAssistant:"
+
+    payload = {
+        "contents": [{
+            "parts": [{
+                "text": combined_message
+            }]
+        }]
+    }
     headers = {
-        'Authorization': f'Bearer {GEMINI_API_KEY}',
         'Content-Type': 'application/json',
     }
-
-    data = {
-        'prompt': prompt_template + f'\nПользователь: {message.text}\nКамилла:',
-        'temperature': 0.7,
-        'max_tokens': 150
-    }
-
     try:
-        response = requests.post(GEMINI_API_URL, headers=headers, json=data, timeout=5)
-        if response.status_code == 200:
-            gemini_response = response.json().get('choices')[0].get('text')
-            bot.reply_to(message, gemini_response)
-        else:
-            bot.reply_to(message, "Извините, произошла ошибка при обращении к Gemini API.")
-            logging.error(f"Gemini API error: {response.text}")
-    except requests.exceptions.RequestException as e:
-        bot.reply_to(message, "Извините, произошла ошибка при соединении с сервером.")
-        logging.error(f"Request error: {e}")
+        response = requests.post(f'{GEMINI_API_URL}?key={GEMINI_API_KEY}', json=payload, headers=headers)
+        response.raise_for_status()
+        data = response.json()
+        result = data['candidates'][0]['content']['parts'][0]['text']
+        return result
+    except Exception as e:
+        logging.error(f"Ошибка при обращении к Gemini API: {e}")
+        return "Извините, произошла ошибка при обработке запроса"
+
+def generate_additional_questions(original_question, mode):
+    prompt = f"На основе вопроса '{original_question}' в режиме {mode}, сгенерируйте три дополнительных вопроса по этой же теме."
+    response = get_gemini_response(prompt, "")
+    questions = response.split('\n')
+    return [q.strip() for q in questions if q.strip()]
 
 if __name__ == "__main__":
-    bot.polling(none_stop=True)
+    while True:
+        try:
+            bot.polling(none_stop=True)
+        except Exception as e:
+            logging.error(f"Ошибка в основном цикле: {e}")
+            time.sleep(15)
