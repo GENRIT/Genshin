@@ -12,6 +12,7 @@ GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini
 bot = telebot.TeleBot(API_KEY)
 user_count = set()
 user_request_count = defaultdict(int)
+user_modes = {}  # New dictionary to store user modes
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -40,13 +41,17 @@ def send_welcome(message):
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query(call):
+    user_id = call.from_user.id
     if call.data == "programmer":
+        user_modes[user_id] = "programmer"
         bot.answer_callback_query(call.id, "Режим программиста активирован!")
         bot.send_message(call.message.chat.id, "Ты выбрал режим программиста. Задавай любые вопросы по программированию!")
     elif call.data == "designer":
+        user_modes[user_id] = "designer"
         bot.answer_callback_query(call.id, "Режим дизайнера активирован!")
         bot.send_message(call.message.chat.id, "Ты выбрал режим дизайнера. Спрашивай о любых аспектах дизайна!")
     elif call.data == "arbitrage":
+        user_modes[user_id] = "arbitrage"
         bot.answer_callback_query(call.id, "Режим арбитража активирован!")
         bot.send_message(call.message.chat.id, "Ты выбрал режим арбитража. Задавай вопросы о стратегиях и возможностях!")
 
@@ -59,14 +64,16 @@ def handle_message(message):
 
     user_text = message.text.lower()
     
-    if "программист" in user_text:
-        response = get_gemini_response(user_text, PROGRAMMER_PROMPT)
-    elif "дизайнер" in user_text:
-        response = get_gemini_response(user_text, DESIGNER_PROMPT)
-    elif "арбитраж" in user_text:
-        response = get_gemini_response(user_text, ARBITRAGE_PROMPT)
+    if user_id in user_modes:
+        mode = user_modes[user_id]
+        if mode == "programmer":
+            response = get_gemini_response(user_text, PROGRAMMER_PROMPT)
+        elif mode == "designer":
+            response = get_gemini_response(user_text, DESIGNER_PROMPT)
+        elif mode == "arbitrage":
+            response = get_gemini_response(user_text, ARBITRAGE_PROMPT)
     else:
-        response = "Пожалуйста, уточни, в каком режиме ты хочешь работать: программист, дизайнер или арбитраж?"
+        response = "Пожалуйста, выбери режим работы, используя команду /start"
 
     bot.reply_to(message, response)
 
