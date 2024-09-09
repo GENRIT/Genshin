@@ -9,7 +9,7 @@ API_KEY = '7246280212:AAGOvDby43WxeGbcO9eLMYZ33UtjMp9TSZo'
 GEMINI_API_KEY = 'AIzaSyD5UcnXASfVpUa6UElDxYqZU6hxxwttj5M'
 GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent'
 
-bot = telebot.TeleBot(API_KEY, parse_mode='Markdown')
+bot = telebot.TeleBot(API_KEY, parse_mode="Markdown")
 user_count = set()
 user_request_count = defaultdict(int)
 user_modes = {}
