@@ -39,6 +39,13 @@ ARBITRAGE_PROMPT = """
 Общайтесь мило и дружелюбно. Старайтесь отвечать на вопросы, даже если они выходят за рамки арбитража. Не используйте звездочки и не ставьте точки в конце предложений.
 """
 
+PSYCHOLOGIST_PROMPT = """
+Вы - опытный психолог-консультант по имени Камилла. Ваша роль заключается в том, чтобы оказывать эмоциональную поддержку, давать советы по психическому здоровью и помогать пользователям справляться с различными жизненными ситуациями. Вы обладаете глубокими знаниями в области психологии, терапевтических техник и стратегий преодоления трудностей. Всегда стремитесь создать безопасное и поддерживающее пространство для пользователей, чтобы они могли открыто обсуждать свои проблемы.
+При ответах на вопросы в начале ответа вставляйте символ "♡".
+
+Общайтесь с эмпатией, терпением и пониманием. Старайтесь предоставлять поддержку и практические советы, но помните, что вы не заменяете профессиональную психологическую помощь. Не используйте звездочки и не ставьте точки в конце предложений.
+"""
+
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     user_count.add(message.from_user.id)
@@ -46,6 +53,7 @@ def send_welcome(message):
     keyboard.row(InlineKeyboardButton("Программист", callback_data="programmer"),
                  InlineKeyboardButton("Дизайнер", callback_data="designer"),
                  InlineKeyboardButton("Арбитражик", callback_data="arbitrage"))
+    keyboard.row(InlineKeyboardButton("Психолог", callback_data="psychologist"))
     bot.reply_to(message, "Привет! Я Камилла, твой ассистент. Выбери режим, в котором ты хочешь работать:", reply_markup=keyboard)
 
 @bot.callback_query_handler(func=lambda call: True)
@@ -63,6 +71,10 @@ def callback_query(call):
         user_modes[user_id] = "arbitrage"
         bot.answer_callback_query(call.id, "Режим арбитража активирован!")
         bot.send_message(call.message.chat.id, "Ты выбрал режим арбитража. Задавай вопросы о стратегиях и возможностях!")
+    elif call.data == "psychologist":
+        user_modes[user_id] = "psychologist"
+        bot.answer_callback_query(call.id, "Режим психолога активирован!")
+        bot.send_message(call.message.chat.id, "Ты выбрал режим психолога. Не стесняйся обсуждать любые вопросы, связанные с психологическим здоровьем и благополучием!")
 
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
@@ -81,6 +93,8 @@ def handle_message(message):
             response = get_gemini_response(user_text, DESIGNER_PROMPT)
         elif mode == "arbitrage":
             response = get_gemini_response(user_text, ARBITRAGE_PROMPT)
+        elif mode == "psychologist":
+            response = get_gemini_response(user_text, PSYCHOLOGIST_PROMPT)
     else:
         response = "Пожалуйста, выбери режим работы, используя команду /start"
 
