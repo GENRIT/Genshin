@@ -75,7 +75,17 @@ def handle_message(message):
     else:
         response = "Пожалуйста, выбери режим работы, используя команду /start"
 
-    bot.reply_to(message, response)
+    send_gradual_message(message.chat.id, response)
+
+def send_gradual_message(chat_id, text):
+    chunk_size = 20  # Adjust this value to control the speed of appearance
+    for i in range(0, len(text), chunk_size):
+        chunk = text[i:i+chunk_size]
+        if i == 0:
+            sent_message = bot.send_message(chat_id, chunk)
+        else:
+            bot.edit_message_text(chat_id=chat_id, message_id=sent_message.message_id, text=text[:i+chunk_size])
+        time.sleep(0.1)  # Adjust this value to control the delay between chunks
 
 def get_gemini_response(question, prompt):
     combined_message = f"{prompt}\n\nUser: {question}\nAssistant:"
