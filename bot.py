@@ -7,22 +7,22 @@ from collections import defaultdict
 
 API_KEY = '7441566490:AAEH1IMGBiIvisBjkH0DmLavDydsbd8T-24'
 GEMINI_API_KEY = 'AIzaSyD5UcnXASfVpUa6UElDxYqZU6hxxwttj5M'
-GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent'
+GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta2/models/gemini-pro:generateText'
 CHANNEL_ID = '@Monopolist_Survivor'  # ID или @юзернейм вашего канала
 
 bot = telebot.TeleBot(API_KEY, parse_mode="Markdown")
 user_count = set()
 user_request_count = defaultdict(int)
-user_modes = {}
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-POST_PROMPT = """Создай пост в стиле вдохновляющих и познавательных бизнес-заметок с краткими, но сильными тезисами. 
+POST_PROMPT = """
+Создай пост в стиле вдохновляющих и познавательных бизнес-заметок с краткими, но сильными тезисами. 
 Тема постов должна быть связана с финансами, бизнесом, финансовой грамотностью и мотивацией. 
 Стиль постов — простой и понятный, как будто человек делится личным опытом. 
 Каждый пост должен заканчиваться фразой, подчеркивающей основную мысль, и содержать подпись "©️ Монополист" и хештеги, например, #Бизнес или #Финграм. 
-Тон должен быть уверенным, но не высокомерным. Приводите примеры из реальной жизни или истории компаний. 
-Оформляй посты с короткими абзацами для удобства восприятия."""
+Тон должен быть уверенным, но не высокомерным. Приводите примеры из реальной жизни или истории компаний. Оформляй посты с короткими абзацами для удобства восприятия.
+"""
 
 # Начальное приветствие
 @bot.message_handler(commands=['start'])
@@ -39,11 +39,13 @@ def generate_post(message):
     # Генерация поста с помощью Gemini
     generated_post = get_gemini_response(POST_PROMPT)
     
-    # Отправка пользователю для одобрения
-    markup = InlineKeyboardMarkup()
-    markup.add(InlineKeyboardButton("Одобрить", callback_data=f"approve_{user_id}"))
-    
-    bot.send_message(message.chat.id, generated_post, reply_markup=markup)
+    if "Ошибка" in generated_post:
+        bot.send_message(message.chat.id, generated_post)
+    else:
+        # Отправка пользователю для одобрения
+        markup = InlineKeyboardMarkup()
+        markup.add(InlineKeyboardButton("Одобрить", callback_data=f"approve_{user_id}"))
+        bot.send_message(message.chat.id, generated_post, reply_markup=markup)
 
 # Обработка инлайн-кнопок
 @bot.callback_query_handler(func=lambda call: call.data.startswith('approve_'))
@@ -64,6 +66,7 @@ def get_gemini_response(prompt, max_retries=3, retry_delay=5):
         "temperature": 0.7,
         "maxOutputTokens": 500
     }
+    
     headers = {
         'Content-Type': 'application/json',
         'Authorization': f'Bearer {GEMINI_API_KEY}'
@@ -74,8 +77,14 @@ def get_gemini_response(prompt, max_retries=3, retry_delay=5):
             response = requests.post(GEMINI_API_URL, json=payload, headers=headers)
             response.raise_for_status()
             data = response.json()
-            result = data['candidates'][0]['content']
-            return result
+            
+            # Проверка корректного получения данных
+            if 'candidates' in data and len(data['candidates']) > 0:
+                result = data['candidates'][0]['output']
+                return result
+            else:
+                raise ValueError("Некорректный ответ от API.")
+                
         except Exception as e:
             logging.error(f"Ошибка при обращении к Gemini API (попытка {attempt + 1}/{max_retries}): {e}")
             if attempt < max_retries - 1:
