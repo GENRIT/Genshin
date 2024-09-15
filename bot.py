@@ -22,7 +22,7 @@ POST_PROMPT = """Создай пост в стиле вдохновляющих 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     user_count.add(message.from_user.id)
-    bot.reply_to(message, "Привет! Я бот, который поможет создавать бизнес-посты. Напиши /generate или 'fix', чтобы создать пост.")
+    bot.reply_to(message, "Привет! Я бот, который поможет создавать бизнес-посты. Напиши /generate, 'fix', или любое предложение, чтобы создать пост.")
 
 # Генерация поста при команде /generate
 @bot.message_handler(commands=['generate'])
@@ -36,13 +36,19 @@ def generate_post(message):
     markup.add(InlineKeyboardButton("Одобрить", callback_data=f"approve_{user_id}"))
     bot.send_message(message.chat.id, generated_post, reply_markup=markup)
 
-# Генерация поста при тексте 'fix'
-@bot.message_handler(func=lambda message: message.text.lower() == 'fix')
-def generate_post_fix(message):
+# Генерация поста при любом введенном тексте
+@bot.message_handler(func=lambda message: True)
+def generate_custom_post(message):
     user_id = message.from_user.id
+    user_input = message.text
     bot.send_chat_action(message.chat.id, 'typing')
+    
+    # Создание пользовательского промпта с введенным текстом
+    custom_prompt = f"{POST_PROMPT}\n\nДополнительное предложение от пользователя: {user_input}"
+    
     # Генерация поста с помощью Gemini
-    generated_post = get_gemini_response(POST_PROMPT)
+    generated_post = get_gemini_response(custom_prompt)
+    
     # Отправка пользователю для одобрения
     markup = InlineKeyboardMarkup()
     markup.add(InlineKeyboardButton("Одобрить", callback_data=f"approve_{user_id}"))
