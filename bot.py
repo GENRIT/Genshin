@@ -7,7 +7,7 @@ from collections import defaultdict
 
 API_KEY = '7441566490:AAEH1IMGBiIvisBjkH0DmLavDydsbd8T-24'
 GEMINI_API_KEY = 'AIzaSyD5UcnXASfVpUa6UElDxYqZU6hxxwttj5M'
-GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta2/models/gemini-pro:generateText'
+GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent'
 CHANNEL_ID = '@Monopolist_Survivor'  # ID или @юзернейм вашего канала
 
 bot = telebot.TeleBot(API_KEY, parse_mode="Markdown")
