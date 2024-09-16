@@ -5,21 +5,37 @@ import logging
 import time
 from collections import defaultdict
 
-API_KEY = '7246280212:AAGOvDby43WxeGbcO9eLMYZ33UtjMp9TSZo'
+API_KEY = '7441566490:AAEH1IMGBiIvisBjkH0DmLavDydsbd8T-24'
 GEMINI_API_KEY = 'AIzaSyD5UcnXASfVpUa6UElDxYqZU6hxxwttj5M'
 GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent'
-bot = telebot.TeleBot(API_KEY, parse_mode="Markdown")
+CHANNEL_ID = '@Monopolist_Survivor'  # ID или @username канала
 
+bot = telebot.TeleBot(API_KEY, parse_mode="Markdown")
 user_count = set()
 user_request_count = defaultdict(int)
 user_modes = {}
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-PROGRAMMER_PROMPT = """Создай пост в стиле вдохновляющих и познавательных бизнес-заметок с краткими, но сильными тезисами. Тема постов должна быть связана с финансами, бизнесом, финансовой грамотностью и мотивацией. Стиль постов — простой и понятный, как будто человек делится личным опытом. Каждый пост должен заканчиваться фразой, подчеркивающей основную мысль, и содержать подпись "©️ Монополист" и хештеги, например, #Бизнес или #Финграм. Тон должен быть уверенным, но не высокомерным. Приводите примеры из реальной жизни или истории компаний. Оформляй посты с короткими абзацами для удобства восприятия."""
+PROGRAMMER_PROMPT = """
+Создай пост в стиле вдохновляющих и познавательных бизнес-заметок с краткими, но сильными тезисами. 
+Тема постов должна быть связана с финансами, бизнесом, финансовой грамотностью и мотивацией. 
+Стиль постов — простой и понятный, как будто человек делится личным опытом. 
+Каждый пост должен заканчиваться фразой, подчеркивающей основную мысль, и содержать подпись "©️ Монополист" и хештеги, 
+например, #Бизнес или #Финграм. Тон должен быть уверенным, но не высокомерным. 
+Приводите примеры из реальной жизни или истории компаний. Оформляй посты с короткими абзацами для удобства восприятия.
+"""
+
+AUTHORIZED_USER_ID = 1420106372  # ID разрешенного пользователя
+
+def is_authorized(user_id):
+    return user_id == AUTHORIZED_USER_ID
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
+    if not is_authorized(message.from_user.id):
+        bot.reply_to(message, "Извините, вы не авторизованы для использования этого бота.")
+        return
     user_count.add(message.from_user.id)
     keyboard = InlineKeyboardMarkup()
     keyboard.row(InlineKeyboardButton("Программист", callback_data="programmer"))
@@ -28,6 +44,9 @@ def send_welcome(message):
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query(call):
     user_id = call.from_user.id
+    if not is_authorized(user_id):
+        bot.answer_callback_query(call.id, "Вы не авторизованы для использования этого бота.")
+        return
     if call.data == "programmer":
         user_modes[user_id] = "programmer"
         bot.answer_callback_query(call.id, "Режим программиста активирован!")
@@ -36,16 +55,22 @@ def callback_query(call):
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
     user_id = message.from_user.id
+    if not is_authorized(user_id):
+        bot.reply_to(message, "Извините, вы не авторизованы для использования этого бота.")
+        return
     user_count.add(user_id)
     bot.send_chat_action(message.chat.id, 'typing')
     user_text = message.text.lower()
+
     if user_id in user_modes:
         mode = user_modes[user_id]
         if mode == "programmer":
             response = get_gemini_response(user_text, PROGRAMMER_PROMPT)
+            send_gradual_message(message.chat.id, response)
+            send_to_channel(response)  # Отправка сообщения в канал
     else:
         response = "Пожалуйста, выбери режим работы, используя команду /start"
-    send_gradual_message(message.chat.id, response)
+        send_gradual_message(message.chat.id, response)
 
 def send_gradual_message(chat_id, text):
     chunk_size = 100
@@ -56,6 +81,10 @@ def send_gradual_message(chat_id, text):
         else:
             bot.edit_message_text(chat_id=chat_id, message_id=sent_message.message_id, text=text[:i+chunk_size])
         time.sleep(0.1)
+
+def send_to_channel(text):
+    """Функция для отправки сообщения в канал"""
+    bot.send_message(CHANNEL_ID, text)
 
 def get_gemini_response(question, prompt, max_retries=3, retry_delay=5):
     combined_message = f"{prompt}\n\nUser: {question}\nAssistant:"
